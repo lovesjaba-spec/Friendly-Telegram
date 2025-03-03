@@ -381,67 +381,49 @@ class InlineManager:
         # We create new bot
         logger.info("User don't have bot, attempting creating new one")
         async with self._client.conversation("@BotFather", exclusive=False) as conv:
-            m = await conv.send_message("/newbot")
+            await conv.send_message("/newbot")
             r = await conv.get_response()
 
             if "20" in r.raw_text:
                 return False
 
-            await m.delete()
-            await r.delete()
-
             await asyncio.sleep(2)
 
             # Set its name to user's name + GeekTG Userbot
-            m = await conv.send_message(f"🤖 GeekTG Userbot of {self._name}")
-            r = await conv.get_response()
+            await conv.send_message(f"🤖 GeekTG Userbot of {self._name}")
+            await conv.get_response()
 
             await asyncio.sleep(2)
-
-            await m.delete()
-            await r.delete()
 
             # Generate and set random username for bot
             uid = rand(6)
             username = f"GeekTG_{uid}_Bot"
 
-            m = await conv.send_message(username)
-            r = await conv.get_response()
+            await conv.send_message(username)
+            await conv.get_response()
 
             await asyncio.sleep(2)
-
-            await m.delete()
-            await r.delete()
 
             # Set bot profile pic
-            m = await conv.send_message("/setuserpic")
-            r = await conv.get_response()
+            await conv.send_message("/setuserpic")
+            await conv.get_response()
 
             await asyncio.sleep(2)
 
-            await m.delete()
-            await r.delete()
-
-            m = await conv.send_message(username)
-            r = await conv.get_response()
+            await conv.send_message(username)
+            await conv.get_response()
 
             await asyncio.sleep(2)
-
-            await m.delete()
-            await r.delete()
 
             try:
-                m = await conv.send_file(photo)
-                r = await conv.get_response()
+                await conv.send_file(photo)
+                await conv.get_response()
             except Exception:
                 # In case user was not able to send photo to
                 # BotFather, it is not a critical issue, so
                 # just ignore it
-                m = await conv.send_message("/cancel")
-                r = await conv.get_response()
-
-            await m.delete()
-            await r.delete()
+                await conv.send_message("/cancel")
+                await conv.get_response()
 
         # Re-attempt search. If it won't find newly created (or not created?) bot
         # it will return `False`, that's why `init_complete` will be `False`
@@ -466,12 +448,9 @@ class InlineManager:
                 # If user banned BotFather, unban him
                 await self._client(UnblockRequest(id="@BotFather"))
                 # And resend message
-                m = await conv.send_message("/token")
+                await conv.send_message("/token")
 
             r = await conv.get_response()
-
-            await m.delete()
-            await r.delete()
 
             # User do not have any bots yet, so just create new one
             if not hasattr(r, "reply_markup") or not hasattr(r.reply_markup, "rows"):
@@ -487,22 +466,16 @@ class InlineManager:
 
                         await asyncio.sleep(2)
 
-                        m = await conv.send_message(button.text)
+                        await conv.send_message(button.text)
                         r = await conv.get_response()
 
                         if revoke_token:
-                            await m.delete()
-                            await r.delete()
-
-                            m = await conv.send_message("/revoke")
-                            r = await conv.get_response()
+                            await conv.send_message("/revoke")
+                            await conv.get_response()
 
                             await asyncio.sleep(2)
 
-                            await m.delete()
-                            await r.delete()
-
-                            m = await conv.send_message(button.text)
+                            await conv.send_message(button.text)
                             r = await conv.get_response()
 
                         token = r.raw_text.splitlines()[1]
@@ -511,83 +484,53 @@ class InlineManager:
                         self._db.set("geektg.inline", "bot_token", token)
                         self._token = token
 
-                        await m.delete()
-                        await r.delete()
-
                         # Enable inline mode or change its
                         # placeholder in case it is not set
-                        m = await conv.send_message("/setinline")
-                        r = await conv.get_response()
+                        await conv.send_message("/setinline")
+                        await conv.get_response()
 
                         await asyncio.sleep(2)
 
-                        await m.delete()
-                        await r.delete()
-
-                        m = await conv.send_message(button.text)
-                        r = await conv.get_response()
+                        await conv.send_message(button.text)
+                        await conv.get_response()
 
                         await asyncio.sleep(2)
 
-                        await m.delete()
-                        await r.delete()
-
-                        m = await conv.send_message("GeekQuery")
-                        r = await conv.get_response()
+                        await conv.send_message("GeekQuery")
+                        await conv.get_response()
 
                         await asyncio.sleep(2)
 
-                        await m.delete()
-                        await r.delete()
-
-                        m = await conv.send_message("/setinlinefeedback")
-                        r = await conv.get_response()
+                        await conv.send_message("/setinlinefeedback")
+                        await conv.get_response()
 
                         await asyncio.sleep(2)
 
-                        await m.delete()
-                        await r.delete()
-
-                        m = await conv.send_message(button.text)
-                        r = await conv.get_response()
+                        await conv.send_message(button.text)
+                        await conv.get_response()
 
                         await asyncio.sleep(2)
 
-                        await m.delete()
-                        await r.delete()
-
-                        m = await conv.send_message("Enabled")
-                        r = await conv.get_response()
+                        await conv.send_message("Enabled")
+                        await conv.get_response()
 
                         await asyncio.sleep(2)
-
-                        await m.delete()
-                        await r.delete()
 
                         # Set bot profile pic
-                        m = await conv.send_message("/setuserpic")
-                        r = await conv.get_response()
+                        await conv.send_message("/setuserpic")
+                        await conv.get_response()
 
                         await asyncio.sleep(2)
 
-                        await m.delete()
-                        await r.delete()
-
-                        m = await conv.send_message(button.text)
-                        r = await conv.get_response()
+                        await conv.send_message(button.text)
+                        await conv.get_response()
 
                         await asyncio.sleep(2)
 
-                        await m.delete()
-                        await r.delete()
-
-                        m = await conv.send_file(photo)
-                        r = await conv.get_response()
+                        await conv.send_file(photo)
+                        await conv.get_response()
 
                         await asyncio.sleep(2)
-
-                        await m.delete()
-                        await r.delete()
 
                         # Return `True` to say, that everything is okay
                         return True
