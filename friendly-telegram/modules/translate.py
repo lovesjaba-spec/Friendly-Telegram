@@ -2,9 +2,9 @@
 
 # Module author: @ftgmodulesbyfl1yd
 
-# requires: googletrans==4.0.0rc1
+# requires: deep-translator
 
-from googletrans import LANGUAGES, Translator
+from deep_translator import GoogleTranslator
 from telethon import events, functions
 from telethon.errors.rpcerrorlist import YouBlockedUserError
 
@@ -18,43 +18,55 @@ class TranslatorMod(loader.Module):
     strings = {"name": "Translate"}
 
     async def gtrslcmd(self, message):
-        """Use it: .gtrsl <what language to translate from> <to which language to translate>
-        <text> or .gtrsl <to translate> <reply>; langs"""
+        """<lang> <text> or reply with <lang> - translate text (Google)
+        .gtrsl langs - list supported languages"""
         args = utils.get_args_raw(message)
         reply = await message.get_reply_message()
-        langs = LANGUAGES
-        lang = args.split()
-        tr = Translator().translate
-        if not args and not reply:
-            return await message.edit("No arguments or reply")
+
         if args == "langs":
-            return await message.edit(
-                "<code>" + "\n".join(str(langs).split(", ")) + "</code>"
+            langs = GoogleTranslator().get_supported_languages(as_dict=True)
+            return await utils.answer(
+                message,
+                "🌐 <b>Supported languages:</b>\n<code>"
+                + ", ".join(sorted(langs.values()))
+                + "</code>",
             )
+
+        dest = "en"
+        text = args
+
         if reply:
-            try:
-                trslreply = True
-                text = reply.text
-                if len(lang) >= 2:
-                    trslreply = False
-                dest = langs[lang[0]]
-                r = tr(args.split(" ", 1)[1] if not trslreply else text, dest=dest)
-            except:
-                r = tr(reply.text)
+            tokens = args.split()
+            if tokens:
+                dest = tokens[0]
+            text = reply.raw_text
         else:
-            try:
-                try:
-                    src = langs[lang[0]]
-                    dest = langs[lang[1]]
-                    text = args.split(" ", 2)[2]
-                    r = tr(text, src=src, dest=dest)
-                except:
-                    dest = langs[lang[0]]
-                    text = args.split(" ", 1)[1]
-                    r = tr(text, dest=dest)
-            except KeyError:
-                r = tr(args)
-        return await message.edit(f"<b>[{r.src} ➜ {r.dest}]</b>\n{r.text}")
+            tokens = args.split(" ", 1)
+            if len(tokens) == 2:
+                dest, text = tokens[0], tokens[1]
+            elif tokens and tokens[0]:
+                text = tokens[0]
+
+        if not text:
+            return await utils.answer(message, "🚫 <b>Nothing to translate</b>")
+
+        try:
+            result = await utils.run_sync(
+                GoogleTranslator(source="auto", target=dest).translate, text
+            )
+        except Exception as e:
+            return await utils.answer(
+                message,
+                "🚫 <b>Translation failed:</b> <code>"
+                + utils.escape_html(str(e))
+                + "</code>",
+            )
+
+        await utils.answer(
+            message,
+            f"🌐 <b>[auto ➜ {utils.escape_html(dest)}]</b>\n"
+            + utils.escape_html(result or ""),
+        )
 
     @loader.unrestricted
     @loader.ratelimit

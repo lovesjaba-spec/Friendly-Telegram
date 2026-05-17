@@ -173,7 +173,10 @@ class ModuleConfig(dict):
 
     def getdoc(self, key, message=None):
         """Get the documentation by key"""
-        ret = self._docstrings[key]
+        if key in getattr(self, "_config", {}):
+            ret = self._config[key].doc
+        else:
+            ret = self._docstrings[key]
         if callable(ret):
             try:
                 ret = ret(message)
@@ -185,6 +188,8 @@ class ModuleConfig(dict):
 
     def getdef(self, key):
         """Get the default value by key"""
+        if key in getattr(self, "_config", {}):
+            return self._config[key].default
         return self._defaults[key]
 
 
