@@ -29,6 +29,8 @@ class HelpMod(loader.Module):
         "single_cmd": "\n▫️ <code>{}{}</code> 👉🏻 ",
         "undoc_cmd": "🦥 No docs",
         "all_header": "👓 <b>{} mods available, {} hidden:</b>",
+        "core_header": "\n\n🛠 <b>System modules:</b>",
+        "plain_header": "\n\n📦 <b>Custom modules:</b>",
         "mod_tmpl": "\n{} <code>{}</code>",
         "first_cmd_tmpl": ": ( {}",
         "cmd_tmpl": " | {}",
@@ -203,7 +205,6 @@ class HelpMod(loader.Module):
 
         plain_ = []
         core_ = []
-        inline_ = []
 
         for mod in self.allmodules.modules:
             if not hasattr(mod, "commands"):
@@ -274,9 +275,7 @@ class HelpMod(loader.Module):
 
             if commands or icommands:
                 tmp += " )"
-                if inline:
-                    inline_ += [tmp]
-                elif core:
+                if core:
                     core_ += [tmp]
                 else:
                     plain_ += [tmp]
@@ -289,11 +288,18 @@ class HelpMod(loader.Module):
 
         plain_.sort(key=lambda x: x.split()[1])
         core_.sort(key=lambda x: x.split()[1])
-        inline_.sort(key=lambda x: x.split()[1])
 
-        await utils.answer(
-            message, f"{reply}\n{''.join(core_)}{''.join(plain_)}{''.join(inline_)}"
-        )
+        if core_:
+            reply += self.strings("core_header") + "\n<blockquote>{}</blockquote>".format(
+                "".join(core_).lstrip("\n")
+            )
+
+        if plain_:
+            reply += self.strings("plain_header") + "\n<blockquote>{}</blockquote>".format(
+                "".join(plain_).lstrip("\n")
+            )
+
+        await utils.answer(message, reply)
 
     async def supportcmd(self, message):
         """Joins the support GeekTG chat"""
