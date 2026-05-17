@@ -415,6 +415,45 @@ class LoaderMod(loader.Module):
 
         doc = heroku_compat.compat(doc)
 
+        requirements_match = VALID_PIP_PACKAGES.search(doc)
+        if (
+            requirements_match
+            and not did_requirements
+            and isinstance(message, Message)
+        ):
+            requirements = [
+                pkg
+                for pkg in map(str.strip, requirements_match[1].split(" "))
+                if pkg and pkg[0] not in ("-", "_", ".")
+            ]
+            if requirements:
+                logger.debug("Pre-installing requirements: %r", requirements)
+                await utils.answer(
+                    message, self.strings("requirements_installing", message)
+                )
+                pip = await asyncio.create_subprocess_exec(
+                    sys.executable,
+                    "-m",
+                    "pip",
+                    "install",
+                    "--upgrade",
+                    "-q",
+                    "--disable-pip-version-check",
+                    "--no-warn-script-location",
+                    *["--user"] if USER_INSTALL else [],
+                    *requirements,
+                )
+                if await pip.wait() != 0:
+                    await utils.answer(
+                        message, self.strings("requirements_failed", message)
+                    )
+                    return False
+
+                importlib.invalidate_caches()
+                return await self.load_module(
+                    doc, message, name, origin, did_requirements=True
+                )
+
         developer = re.search(r"# ?meta developer: ?(.+)", doc)
         developer = developer.group(1) if developer else False
         developer = self.strings("developer").format(developer) if developer else ""
