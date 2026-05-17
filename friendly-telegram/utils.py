@@ -23,17 +23,20 @@ import functools
 import io
 import logging
 import os
+import re
 import shlex
 import random
 import string
 
 import telethon
+from telethon.extensions import html as telethon_html
 from telethon.tl.custom.message import Message
 from telethon.tl.types import (
     PeerUser,
     PeerChat,
     PeerChannel,
     MessageEntityMentionName,
+    MessageEntityBlockquote,
     User,
     MessageMediaWebPage,
 )
@@ -41,6 +44,38 @@ from telethon.tl.types import (
 from . import __main__
 from . import main
 import git
+
+
+_BLOCKQUOTE_OPEN = re.compile(r"<blockquote(\s[^>]*)?>", re.IGNORECASE)
+
+
+class HTMLExpandable:
+    """HTML parse mode that supports the <blockquote expandable> syntax"""
+
+    @staticmethod
+    def parse(text):
+        expandable = []
+
+        def _strip(match):
+            expandable.append("expandable" in (match.group(1) or "").lower())
+            return "<blockquote>"
+
+        parsed, entities = telethon_html.parse(_BLOCKQUOTE_OPEN.sub(_strip, text))
+
+        quotes = sorted(
+            (e for e in entities if isinstance(e, MessageEntityBlockquote)),
+            key=lambda e: e.offset,
+        )
+
+        for entity, is_expandable in zip(quotes, expandable):
+            if is_expandable:
+                entity.collapsed = True
+
+        return parsed, entities
+
+    @staticmethod
+    def unparse(text, entities):
+        return telethon_html.unparse(text, entities)
 
 
 def get_platform_name():
