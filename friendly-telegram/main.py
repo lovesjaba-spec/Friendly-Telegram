@@ -497,7 +497,7 @@ async def amain(first, client, allclients, web, arguments):
     """Entrypoint for async init, run once for each user"""
     setup = arguments.setup
     web_only = arguments.web_only
-    client.parse_mode = utils.HTMLExpandable
+    client.parse_mode = utils.HTMLExpandable()
     await client.start()
 
     handlers = logging.getLogger().handlers
