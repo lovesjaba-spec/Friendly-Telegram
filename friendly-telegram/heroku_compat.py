@@ -88,18 +88,6 @@ class StopLoop(Exception):
     """Heroku loop-stop signal."""
 
 
-_AIOGRAM3_MARKERS = (
-    "LinkPreviewOptions",
-    "aiogram.enums",
-    "aiogram.client",
-    "from aiogram import Router",
-    "DefaultBotProperties",
-)
-
-
-def needs_aiogram3(code: str) -> bool:
-    """Detect a module that depends on aiogram v3 inline API."""
-    return any(marker in code for marker in _AIOGRAM3_MARKERS)
 
 
 def _marker(attr: str):

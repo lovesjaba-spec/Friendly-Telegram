@@ -23,6 +23,8 @@ from telethon.errors.rpcerrorlist import YouBlockedUserError, InputUserDeactivat
 from telethon.tl.functions.contacts import UnblockRequest
 from telethon.utils import get_display_name
 
+from aiogram.client.default import DefaultBotProperties
+from aiogram.enums import ParseMode
 from aiogram.types import (  # skipcq: PYL-C0412
     InputTextMessageContent,
     InlineQuery,
@@ -35,11 +37,19 @@ from aiogram.types import (  # skipcq: PYL-C0412
     InlineQueryResultGif,
     InlineQueryResultVideo,
     InputMediaPhoto,
+    LinkPreviewOptions,
 )
 
 from aiogram.types import Message as AiogramMessage
 
-from aiogram.utils.exceptions import Unauthorized
+from aiogram.exceptions import (
+    TelegramUnauthorizedError,
+    TelegramBadRequest,
+    TelegramRetryAfter,
+    TelegramConflictError,
+)
+
+_NO_PREVIEW = LinkPreviewOptions(is_disabled=True)
 
 from . import utils
 import logging
@@ -173,21 +183,15 @@ async def edit(
         await self.bot.edit_message_text(
             text,
             inline_message_id=inline_message_id or query.inline_message_id,
-            parse_mode="HTML",
-            disable_web_page_preview=disable_web_page_preview,
+            parse_mode=ParseMode.HTML,
+            link_preview_options=LinkPreviewOptions(
+                is_disabled=disable_web_page_preview
+            ),
             reply_markup=self._generate_markup(form_uid),
         )
-    except aiogram.utils.exceptions.MessageNotModified:
-        try:
-            await query.answer()
-        except aiogram.utils.exceptions.InvalidQueryID:
-            pass  # Just ignore that error, bc we need to just
-            # remove preloader from user's button, if message
-            # was deleted
-
-    except aiogram.utils.exceptions.RetryAfter as e:
-        logger.info(f"Sleeping {e.timeout}s on aiogram FloodWait...")
-        await asyncio.sleep(e.timeout)
+    except TelegramRetryAfter as e:
+        logger.info(f"Sleeping {e.retry_after}s on aiogram FloodWait...")
+        await asyncio.sleep(e.retry_after)
         return await edit(
             text,
             reply_markup,
@@ -199,15 +203,22 @@ async def edit(
             form_uid,
             inline_message_id,
         )
-    except aiogram.utils.exceptions.MessageIdInvalid:
-        try:
-            await query.answer(
-                "I should have edited some message, but it is deleted :("
-            )
-        except aiogram.utils.exceptions.InvalidQueryID:
-            pass  # Just ignore that error, bc we need to just
-            # remove preloader from user's button, if message
-            # was deleted
+    except TelegramBadRequest as e:
+        msg = str(e).lower()
+        if "not modified" in msg:
+            try:
+                await query.answer()
+            except TelegramBadRequest:
+                pass
+        elif "message to edit not found" in msg or "message_id_invalid" in msg:
+            try:
+                await query.answer(
+                    "I should have edited some message, but it is deleted :("
+                )
+            except TelegramBadRequest:
+                pass
+        else:
+            logger.exception("Failed to edit inline message")
 
 
 async def custom_next_handler(
@@ -233,8 +244,11 @@ async def custom_next_handler(
         await call.answer("No photos left", show_alert=True)
         return
 
-    markup = InlineKeyboardMarkup()
-    markup.add(InlineKeyboardButton("Next ➡️", callback_data=btn_call_data))
+    markup = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="Next ➡️", callback_data=btn_call_data)]
+        ]
+    )
 
     _caption = (
         caption if isinstance(caption, str) or not callable(caption) else caption()
@@ -243,7 +257,9 @@ async def custom_next_handler(
     try:
         await self.bot.edit_message_media(
             inline_message_id=call.inline_message_id,
-            media=InputMediaPhoto(media=new_url, caption=_caption, parse_mode="HTML"),
+            media=InputMediaPhoto(
+                media=new_url, caption=_caption, parse_mode=ParseMode.HTML
+            ),
             reply_markup=markup,
         )
     except Exception:
@@ -292,7 +308,9 @@ async def answer(
             message.chat.id,
             text,
             parse_mode=parse_mode,
-            disable_web_page_preview=disable_web_page_preview,
+            link_preview_options=LinkPreviewOptions(
+                is_disabled=disable_web_page_preview
+            ),
             **kwargs,
         )
     except Exception:
@@ -611,17 +629,20 @@ class InlineManager:
         self.init_complete = True
 
         # Create bot instance and dispatcher
-        self.bot = Bot(token=self._token)
+        self.bot = Bot(
+            token=self._token,
+            default=DefaultBotProperties(parse_mode=ParseMode.HTML),
+        )
         self._bot = self.bot  # This is a temporary alias so the
         # developers can adapt their code
-        self._dp = Dispatcher(self.bot)
+        self._dp = Dispatcher()
 
         # Get bot username to call inline queries
         try:
             self.bot_username = (await self.bot.get_me()).username
             self._bot_username = self.bot_username  # This is a temporary alias so the
             # developers can adapt their code
-        except Unauthorized:
+        except TelegramUnauthorizedError:
             logger.critical("Token expired, revoking...")
             return await self._dp_revoke_token(False)
 
@@ -646,38 +667,31 @@ class InlineManager:
         await self._client.delete_messages(self.bot_username, m)
 
         # Register required event handlers inside aiogram
-        self._dp.register_inline_handler(
-            self._inline_handler, lambda inline_query: True
-        )
-        self._dp.register_callback_query_handler(
-            self._callback_query_handler, lambda query: True
-        )
-        self._dp.register_chosen_inline_handler(
-            self._chosen_inline_handler, lambda chosen_inline_query: True
-        )
-        self._dp.register_message_handler(
-            self._message_handler, lambda *args: True, content_types=["any"]
-        )
-
-        old = self.bot.get_updates
-        revoke = self._dp_revoke_token
-
-        async def new(*args, **kwargs):
-            try:
-                return await old(*args, **kwargs)
-            except aiogram.utils.exceptions.TerminatedByOtherGetUpdates:
-                await revoke()
-            except aiogram.utils.exceptions.Unauthorized:
-                logger.critical("Got Unauthorized")
-                await self._stop()
-
-        self.bot.get_updates = new
+        self._dp.inline_query.register(self._inline_handler)
+        self._dp.callback_query.register(self._callback_query_handler)
+        self._dp.chosen_inline_result.register(self._chosen_inline_handler)
+        self._dp.message.register(self._message_handler)
 
         # Start polling as the separate task, just in case we will need
         # to force stop this coro. It should be cancelled only by `stop`
         # because it stops the bot from getting updates
-        self._task = asyncio.ensure_future(self._dp.start_polling())
+        self._task = asyncio.ensure_future(self._poll())
         self._cleaner_task = asyncio.ensure_future(self._cleaner())
+
+    async def _poll(self) -> None:
+        """Runs aiogram long-polling and handles fatal polling errors"""
+        try:
+            await self._dp.start_polling(self.bot, handle_signals=False)
+        except TelegramConflictError:
+            logger.error("Got polling conflict. Attempting token revocation...")
+            await self._dp_revoke_token()
+        except TelegramUnauthorizedError:
+            logger.critical("Got Unauthorized")
+            await self._stop()
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            logger.exception("Inline polling crashed")
 
     async def _message_handler(self, message: AiogramMessage) -> None:
         """Processes incoming messages"""
@@ -698,13 +712,16 @@ class InlineManager:
                 logger.exception("Error on running aiogram watcher!")
 
     async def _stop(self) -> None:
+        try:
+            await self._dp.stop_polling()
+        except Exception:
+            pass
         self._task.cancel()
-        self._dp.stop_polling()
         self._cleaner_task.cancel()
 
     def _generate_markup(self, form_uid: Union[str, list], buttons: list = False) -> InlineKeyboardMarkup:
         """Generate markup for form"""
-        markup = InlineKeyboardMarkup()
+        keyboard = []
         if form_uid:
             for row in (
                 self._forms[form_uid]["buttons"] if isinstance(form_uid, str) else form_uid
@@ -725,27 +742,29 @@ class InlineManager:
                     if "url" in button:
                         line += [
                             InlineKeyboardButton(
-                                button["text"], url=button.get("url", None)
+                                text=button["text"], url=button.get("url", None)
                             )
                         ]
                     elif "callback" in button:
                         line += [
                             InlineKeyboardButton(
-                                button["text"], callback_data=button["_callback_data"]
+                                text=button["text"],
+                                callback_data=button["_callback_data"],
                             )
                         ]
                     elif "input" in button:
                         line += [
                             InlineKeyboardButton(
-                                button["text"],
-                                switch_inline_query_current_chat=button["_switch_query"]
-                                + " ",
+                                text=button["text"],
+                                switch_inline_query_current_chat=(
+                                    button["_switch_query"] + " "
+                                ),
                             )
                         ]
                     elif "data" in button:
                         line += [
                             InlineKeyboardButton(
-                                button["text"], callback_data=button["data"]
+                                text=button["text"], callback_data=button["data"]
                             )
                         ]
                     else:
@@ -762,9 +781,9 @@ class InlineManager:
                     )
                     return False
 
-            markup.row(*line)
+            keyboard += [line]
 
-        return markup
+        return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
     async def _inline_handler(self, inline_query: InlineQuery) -> None:
         """Inline query handler (forms' calls)"""
@@ -817,13 +836,13 @@ class InlineManager:
                         title="Show available inline commands",
                         description=f"You have {icmds} available commands",
                         input_message_content=InputTextMessageContent(
-                            itext,
-                            "HTML",
-                            disable_web_page_preview=True,
+                            message_text=itext,
+                            parse_mode=ParseMode.HTML,
+                            link_preview_options=_NO_PREVIEW,
                         ),
-                        thumb_url="https://img.icons8.com/fluency/50/000000/info-squared.png",  # skipcq: FLK-E501
-                        thumb_width=128,
-                        thumb_height=128,
+                        thumbnail_url="https://img.icons8.com/fluency/50/000000/info-squared.png",  # skipcq: FLK-E501
+                        thumbnail_width=128,
+                        thumbnail_height=128,
                     )
                 ],
                 cache_time=0,
@@ -872,10 +891,12 @@ class InlineManager:
                                 title=button["input"],
                                 description="⚠️ Please, do not remove identifier!",
                                 input_message_content=InputTextMessageContent(
-                                    "🔄 <b>Transferring value to userbot...</b>\n"
-                                    "<i>This message is gonna be deleted...</i>",
-                                    "HTML",
-                                    disable_web_page_preview=True,
+                                    message_text=(
+                                        "🔄 <b>Transferring value to userbot...</b>\n"
+                                        "<i>This message is gonna be deleted...</i>"
+                                    ),
+                                    parse_mode=ParseMode.HTML,
+                                    link_preview_options=_NO_PREVIEW,
                                 ),
                             )
                         ],
@@ -892,11 +913,15 @@ class InlineManager:
                 + gallery["always_allow"]
                 and query == gallery["uid"]
             ):
-                markup = InlineKeyboardMarkup()
-                markup.add(
-                    InlineKeyboardButton(
-                        "Next ➡️", callback_data=gallery["btn_call_data"]
-                    )
+                markup = InlineKeyboardMarkup(
+                    inline_keyboard=[
+                        [
+                            InlineKeyboardButton(
+                                text="Next ➡️",
+                                callback_data=gallery["btn_call_data"],
+                            )
+                        ]
+                    ]
                 )
 
                 caption = gallery["caption"]
@@ -908,11 +933,11 @@ class InlineManager:
                             id=rand(20),
                             title="Toss a coin",
                             photo_url=gallery["photo_url"],
-                            thumb_url=gallery["photo_url"],
+                            thumbnail_url=gallery["photo_url"],
                             caption=caption,
                             description=caption,
                             reply_markup=markup,
-                            parse_mode="HTML",
+                            parse_mode=ParseMode.HTML,
                         )
                     ],
                     cache_time=0,
@@ -935,20 +960,20 @@ class InlineManager:
                 title="GeekTG",
                 video_url=photo,
                 mime_type="video/mp4",
-                thumb_url=DEFAULT_THUMB,
+                thumbnail_url=DEFAULT_THUMB,
                 caption=text,
                 reply_markup=markup,
-                parse_mode="HTML",
+                parse_mode=ParseMode.HTML,
             )
         elif kind == "gif":
             result = InlineQueryResultGif(
                 id=rand(20),
                 title="GeekTG",
                 gif_url=photo,
-                thumb_url=DEFAULT_THUMB,
+                thumbnail_url=DEFAULT_THUMB,
                 caption=text,
                 reply_markup=markup,
-                parse_mode="HTML",
+                parse_mode=ParseMode.HTML,
             )
         elif kind == "photo":
             result = InlineQueryResultPhoto(
@@ -957,17 +982,17 @@ class InlineManager:
                 photo_url=photo,
                 caption=text,
                 reply_markup=markup,
-                thumb_url=photo,
-                parse_mode="HTML",
+                thumbnail_url=photo,
+                parse_mode=ParseMode.HTML,
             )
         else:
             result = InlineQueryResultArticle(
                 id=rand(20),
                 title="GeekTG",
                 input_message_content=InputTextMessageContent(
-                    text,
-                    "HTML",
-                    disable_web_page_preview=True,
+                    message_text=text,
+                    parse_mode=ParseMode.HTML,
+                    link_preview_options=_NO_PREVIEW,
                 ),
                 reply_markup=markup,
             )
@@ -1355,14 +1380,12 @@ class InlineManager:
         }
 
         self._custom_map[btn_call_data] = {
-            "handler": asyncio.coroutine(
-                functools.partial(
-                    custom_next_handler,
-                    func=next_handler,
-                    self=self,
-                    btn_call_data=btn_call_data,
-                    caption=caption,
-                )
+            "handler": functools.partial(
+                custom_next_handler,
+                func=next_handler,
+                self=self,
+                btn_call_data=btn_call_data,
+                caption=caption,
             ),
             "always_allow": always_allow,
             "force_me": force_me,

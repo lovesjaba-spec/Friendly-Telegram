@@ -169,10 +169,6 @@ class LoaderMod(loader.Module):
         ),
         "version_incompatible": "🚫 <b>This module requires GeekTG {}+\nPlease, update with </b><code>.update</code>",
         "non_heroku": "♓️ <b>This module is not supported on Heroku</b>",
-        "aiogram3_required": (
-            "🚫 <b>This Heroku module is built for aiogram 3 (next-gen inline) "
-            "and is incompatible with this userbot</b>"
-        ),
         "ffmpeg_required": "🚫 <b>This module requires FFMPEG, which is not installed</b>",
         "developer": "\n🧑‍💻 <b>Developer:</b> <code>{}</code>",
     }
@@ -219,10 +215,6 @@ class LoaderMod(loader.Module):
         ),
         "version_incompatible": "🚫 <b>Этому модулю нужен GeekTG {}+\nОбновитесь командой </b><code>.update</code>",
         "non_heroku": "♓️ <b>Этот модуль не поддерживается на Heroku</b>",
-        "aiogram3_required": (
-            "🚫 <b>Этот Heroku-модуль написан под aiogram 3 (инлайн нового "
-            "поколения) и несовместим с этим юзерботом</b>"
-        ),
         "ffmpeg_required": "🚫 <b>Этому модулю нужен FFMPEG, который не установлен</b>",
         "developer": "\n🧑‍💻 <b>Разработчик:</b> <code>{}</code>",
         "_cls_doc": "Загружает модули",
@@ -405,10 +397,6 @@ class LoaderMod(loader.Module):
                 await utils.answer(message, self.strings("inline_init_failed"))
             return
 
-        if heroku_compat.needs_aiogram3(doc):
-            if isinstance(message, Message):
-                await utils.answer(message, self.strings("aiogram3_required"))
-            return
 
         if re.search(r"# ?scope: ?geektg_min", doc):
             ver = re.search(
