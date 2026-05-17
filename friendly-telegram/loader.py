@@ -145,33 +145,30 @@ class ModuleConfig(dict):
         if entries and all(
             isinstance(entry, heroku_compat.ConfigValue) for entry in entries
         ):
-            keys = [entry.option for entry in entries]
-            values = [entry.value for entry in entries]
-            defaults = [entry.default for entry in entries]
-            docstrings = [entry.doc for entry in entries]
-            self._config_values = {entry.option: entry for entry in entries}
+            config_values = list(entries)
         else:
-            keys = []
-            values = []
-            defaults = []
-            docstrings = []
-            for i, entry in enumerate(entries):
-                if i % 3 == 0:
-                    keys.append(entry)
-                elif i % 3 == 1:
-                    values.append(entry)
-                    defaults.append(entry)
-                else:
-                    docstrings.append(entry)
-            self._config_values = {}
+            config_values = []
+            for i in range(0, len(entries), 3):
+                triple = entries[i:i + 3]
+                config_values.append(
+                    heroku_compat.ConfigValue(
+                        triple[0],
+                        triple[1] if len(triple) > 1 else None,
+                        triple[2] if len(triple) > 2 else "No description",
+                    )
+                )
 
-        super().__init__(zip(keys, values))
-        self._docstrings = dict(zip(keys, docstrings))
-        self._defaults = dict(zip(keys, defaults))
+        # `_config` mirrors Heroku's ModuleConfig: option name -> ConfigValue.
+        # Heroku modules introspect it (e.g. DBBackedModuleConfig).
+        self._config = {cv.option: cv for cv in config_values}
+        keys = [cv.option for cv in config_values]
+        super().__init__(zip(keys, [cv.value for cv in config_values]))
+        self._docstrings = {cv.option: cv.doc for cv in config_values}
+        self._defaults = {cv.option: cv.default for cv in config_values}
 
     def get_validator(self, key):
         """Return the ConfigValue validator for a key, if any"""
-        entry = self._config_values.get(key)
+        entry = self._config.get(key)
         return getattr(entry, "validator", None) if entry is not None else None
 
     def getdoc(self, key, message=None):

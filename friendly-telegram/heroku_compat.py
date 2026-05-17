@@ -207,6 +207,10 @@ class ConfigValue:
         if self.value is None:
             self.value = self.default
 
+    def set_no_raise(self, value):
+        self.value = value
+        return True
+
 
 class _Validator:
     def __init__(self, name, *args, **kwargs):
