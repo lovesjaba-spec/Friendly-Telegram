@@ -300,9 +300,26 @@ class LoaderMod(loader.Module):
             return
 
         if path_ is not None:
-            await self.load_module(doc, message, origin=path_)
+            uid = os.path.basename(path_)
+        elif msg is not None and getattr(msg.file, "name", None):
+            uid = msg.file.name
         else:
-            await self.load_module(doc, message)
+            uid = "__loadmod_" + uuid.uuid4().hex
+
+        if uid.endswith(".py"):
+            uid = uid[:-3]
+
+        uid = re.sub(r"[^a-zA-Z0-9_]", "_", uid) or ("__loadmod_" + uuid.uuid4().hex)
+
+        if path_ is not None:
+            loaded = await self.load_module(doc, message, name=uid, origin=path_)
+        else:
+            loaded = await self.load_module(doc, message, name=uid)
+
+        if loaded:
+            files = self._db.get(__name__, "loaded_files", {})
+            files[uid] = doc
+            self._db.set(__name__, "loaded_files", files)
 
     async def load_module(
         self, doc, message, name=None, origin="<string>", did_requirements=False
@@ -640,6 +657,11 @@ class LoaderMod(loader.Module):
         it = set(self._db.get(__name__, "unloaded_modules", [])).union(without_prefix)
         self._db.set(__name__, "unloaded_modules", list(it))
 
+        files = self._db.get(__name__, "loaded_files", {})
+        for name in without_prefix:
+            files.pop(name, None)
+        self._db.set(__name__, "loaded_files", files)
+
         await utils.answer(
             message, self.strings("unloaded" if worked else "not_unloaded", message)
         )
@@ -649,6 +671,7 @@ class LoaderMod(loader.Module):
         """Delete all installed modules"""
         self._db.set("friendly-telegram.modules.loader", "loaded_modules", [])
         self._db.set("friendly-telegram.modules.loader", "unloaded_modules", [])
+        self._db.set("friendly-telegram.modules.loader", "loaded_files", {})
 
         await utils.answer(message, self.strings("all_modules_deleted", message))
 
@@ -664,6 +687,17 @@ class LoaderMod(loader.Module):
         repos = set(self._db.get(__name__, "loaded_repositories", []))
 
         await asyncio.gather(*[self.load_repo(get_git_api(url)) for url in repos])
+
+        unloaded = self._db.get(__name__, "unloaded_modules", [])
+        files = self._db.get(__name__, "loaded_files", {})
+
+        await asyncio.gather(
+            *[
+                self.load_module(source, None, name=name)
+                for name, source in files.items()
+                if name not in unloaded
+            ]
+        )
 
     async def client_ready(self, client, db):
         self._db = db
