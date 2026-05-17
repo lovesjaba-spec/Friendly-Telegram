@@ -346,6 +346,10 @@ class TerminalMod(loader.Module):
         "_cmd_doc_terminate": (
             "<реплай> [-f] - Остановить запущенную команду, -f для принудительного"
         ),
+        "_cmd_doc_apt": "<аргументы> - Сокращение для пакетного менеджера apt",
+        "_cmd_doc_neofetch": "Показать информацию о системе через neofetch",
+        "_cmd_doc_uptime": "Показать аптайм системы",
+        "_cmd_doc_kill": "<реплай> - Принудительно убить процесс (SIGKILL)",
     }
 
     DANGEROUS_COMMANDS = [
@@ -397,6 +401,23 @@ class TerminalMod(loader.Module):
             return
 
         await self.run_command(message, user_command)
+
+    @loader.owner
+    async def aptcmd(self, message: Message) -> None:
+        """<args> - Shorthand for the apt package manager"""
+        args = utils.get_args_raw(message)
+        prefix = "apt " if os.geteuid() == 0 else "sudo -S apt "
+        await self.run_command(message, prefix + args + " -y")
+
+    @loader.owner
+    async def neofetchcmd(self, message: Message) -> None:
+        """Show system info via neofetch"""
+        await self.run_command(message, "neofetch --stdout")
+
+    @loader.owner
+    async def uptimecmd(self, message: Message) -> None:
+        """Show system uptime"""
+        await self.run_command(message, "uptime")
 
     async def run_command(
         self,
@@ -470,6 +491,25 @@ class TerminalMod(loader.Module):
                     os.killpg(sproc.pid, signal.SIGTERM)
                 else:
                     os.killpg(sproc.pid, signal.SIGKILL)
+            except Exception:
+                logger.exception("Killing process failed")
+                await utils.answer(message, self.strings("kill_fail"))
+            else:
+                await utils.answer(message, self.strings("killed"))
+        else:
+            await utils.answer(message, self.strings("no_cmd"))
+
+    @loader.owner
+    async def killcmd(self, message: Message) -> None:
+        """<reply> - Force-kill a running command (SIGKILL)"""
+        if not message.is_reply:
+            await utils.answer(message, self.strings("what_to_kill"))
+            return
+
+        if hash_msg(await message.get_reply_message()) in self.activecmds:
+            try:
+                sproc = self.activecmds[hash_msg(await message.get_reply_message())]
+                os.killpg(sproc.pid, signal.SIGKILL)
             except Exception:
                 logger.exception("Killing process failed")
                 await utils.answer(message, self.strings("kill_fail"))
