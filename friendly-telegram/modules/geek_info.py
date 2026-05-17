@@ -29,6 +29,7 @@ class GeekInfoMod(loader.Module):
         "_custom_msg_doc": "Custom message must have {owner}, {version}, {build}, {upd}, {platform} keywords",
         "_custom_button_doc": "Custom buttons.",
         "_photo_url_doc": "You can set your own photo to geek info.",
+        "_inline_doc": "Send .info as an inline message with buttons. Disable for a plain message.",
         "default_message": (
             "<b>🕶 GeekTG Userbot</b>\n\n"
             "<b>🤴 Owner:</b> {owner}\n"
@@ -46,6 +47,10 @@ class GeekInfoMod(loader.Module):
         ),
         "_custom_button_doc": "Кастомные кнопки.",
         "_photo_url_doc": "Можно задать своё фото для geek info.",
+        "_inline_doc": (
+            "Отправлять .info как inline-сообщение с кнопками. "
+            "Отключите для обычного сообщения."
+        ),
         "default_message": (
             "<b>🕶 GeekTG Userbot</b>\n\n"
             "<b>🤴 Владелец:</b> {owner}\n"
@@ -80,6 +85,9 @@ class GeekInfoMod(loader.Module):
             "photo_url",
             "https://i.imgur.com/6FKsFcM.png",
             lambda: self.strings("_photo_url_doc"),
+            "inline",
+            True,
+            lambda: self.strings("_inline_doc"),
         )
 
     def build_message(self):
@@ -146,9 +154,12 @@ class GeekInfoMod(loader.Module):
         """
         Send userbot info
         """
-        return await self.inline.form(
-            message=message,
-            text=self.build_message(),
-            reply_markup=self.config["custom_buttons"],
-            photo=self.config["photo_url"],
-        )
+        if self.config["inline"]:
+            return await self.inline.form(
+                message=message,
+                text=self.build_message(),
+                reply_markup=self.config["custom_buttons"],
+                photo=self.config["photo_url"],
+            )
+
+        await utils.answer(message, self.build_message())
