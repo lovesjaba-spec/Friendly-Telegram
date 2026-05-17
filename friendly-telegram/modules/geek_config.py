@@ -78,21 +78,18 @@ class GeekConfigMod(loader.Module):
     async def client_ready(self, client, db) -> None:
         self._db = db
         self._client = client
-        self._bot_id = (await self.inline.bot.get_me()).id
+        self._bot_id = (
+            (await self.inline.bot.get_me()).id
+            if self.inline.init_complete
+            else None
+        )
         self._forms = {}
 
     @staticmethod
     async def inline__close(call: CallbackQuery) -> None:  # noqa
         await call.delete()
 
-    async def inline__set_config(
-        self,
-        call: CallbackQuery,
-        query: str,
-        mod: str,
-        option: str,
-        inline_message_id: str,
-    ) -> None:  # noqa
+    def _apply_config(self, mod: str, option: str, query: str):
         for module in self.allmodules.modules:
             if module.strings("name") == mod:
                 module.config[option] = query
@@ -115,6 +112,11 @@ class GeekConfigMod(loader.Module):
                 self.allmodules.send_config_one(module, self._db, skip_hook=True)
                 self._db.save()
 
+        return query
+
+    async def _config_saved(
+        self, call: CallbackQuery, mod: str, option: str, query, inline_message_id: str
+    ) -> None:
         await call.edit(
             self.strings("option_saved").format(mod, option, query),
             reply_markup=[
@@ -130,11 +132,81 @@ class GeekConfigMod(loader.Module):
             inline_message_id=inline_message_id,
         )
 
+    async def inline__set_config(
+        self,
+        call: CallbackQuery,
+        query: str,
+        mod: str,
+        option: str,
+        inline_message_id: str,
+    ) -> None:  # noqa
+        query = self._apply_config(mod, option, query)
+        await self._config_saved(call, mod, option, query, inline_message_id)
+
+    async def inline__set_bool(
+        self,
+        call: CallbackQuery,
+        mod: str,
+        option: str,
+        value: str,
+        inline_message_id: str,
+    ) -> None:  # noqa
+        query = self._apply_config(mod, option, value)
+        await self._config_saved(call, mod, option, query, inline_message_id)
+
     async def inline__configure_option(
         self, call: CallbackQuery, mod: str, config_opt: str
     ) -> None:  # noqa
         for module in self.allmodules.modules:
             if module.strings("name") == mod:
+                markup = [
+                    [
+                        {
+                            "text": "✍️ Enter value",
+                            "input": "✍️ Enter new configuration value for this option",  # noqa: E501
+                            "handler": self.inline__set_config,
+                            "args": (mod, config_opt, call.inline_message_id),
+                        }
+                    ]
+                ]
+
+                if isinstance(module.config.getdef(config_opt), bool):
+                    markup += [
+                        [
+                            {
+                                "text": "✅ True",
+                                "callback": self.inline__set_bool,
+                                "args": (
+                                    mod,
+                                    config_opt,
+                                    "True",
+                                    call.inline_message_id,
+                                ),
+                            },
+                            {
+                                "text": "🚫 False",
+                                "callback": self.inline__set_bool,
+                                "args": (
+                                    mod,
+                                    config_opt,
+                                    "False",
+                                    call.inline_message_id,
+                                ),
+                            },
+                        ]
+                    ]
+
+                markup += [
+                    [
+                        {
+                            "text": "👈 Back",
+                            "callback": self.inline__configure,
+                            "args": (mod,),
+                        },
+                        {"text": "🚫 Close", "callback": self.inline__close},
+                    ]
+                ]
+
                 await call.edit(
                     self.strings("configuring_option").format(
                         utils.escape_html(config_opt),
@@ -143,24 +215,7 @@ class GeekConfigMod(loader.Module):
                         utils.escape_html(module.config.getdef(config_opt)),
                         utils.escape_html(module.config[config_opt]),
                     ),
-                    reply_markup=[
-                        [
-                            {
-                                "text": "✍️ Enter value",
-                                "input": "✍️ Enter new configuration value for this option", # noqa: E501
-                                "handler": self.inline__set_config,
-                                "args": (mod, config_opt, call.inline_message_id),
-                            }
-                        ],
-                        [
-                            {
-                                "text": "👈 Back",
-                                "callback": self.inline__configure,
-                                "args": (mod,),
-                            },
-                            {"text": "🚫 Close", "callback": self.inline__close},
-                        ],
-                    ],
+                    reply_markup=markup,
                 )
 
     async def inline__configure(self, call: CallbackQuery, mod: str) -> None:  # noqa

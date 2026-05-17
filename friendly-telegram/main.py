@@ -564,7 +564,10 @@ async def amain(first, client, allclients, web, arguments):
 
     await babelfish.init(client)
 
-    modules = loader.Modules()
+    modules = loader.Modules(
+        use_inline=arguments.use_inline
+        and not db.get(__name__, "disable_inline", False)
+    )
     no_nickname = arguments.no_nickname
 
     if web:

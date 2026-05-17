@@ -168,7 +168,7 @@ class HelpMod(loader.Module):
                 if await self.allmodules.check_security(message, func)
             }
 
-            if hasattr(module, "inline_handlers"):
+            if hasattr(module, "inline_handlers") and self.inline.init_complete:
                 for name, fun in module.inline_handlers.items():
                     reply += self.strings("ihandler", message).format(
                         f"@{self.inline.bot_username} {name}"
