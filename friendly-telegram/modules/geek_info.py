@@ -17,7 +17,7 @@ import git
 from aiogram.types.input_message_content import InputTextMessageContent
 
 from telethon.utils import get_display_name
-from ..inline import GeekInlineQuery, rand
+from ..inline import GeekInlineQuery, rand, DEFAULT_THUMB, media_kind
 
 logger = logging.getLogger(__name__)
 
@@ -134,23 +134,47 @@ class GeekInfoMod(loader.Module):
         @allow: all
         """
 
-        await query.answer(
-            [
-                aiogram.types.inline_query_result.InlineQueryResultPhoto(
-                    id=rand(20),
-                    photo_url=self.config["photo_url"],
-                    title="Send userbot info",
-                    description="ℹ This will not compromise any sensitive data",
-                    caption=self.build_message(),
-                    parse_mode="html",
-                    thumb_url="https://github.com/GeekTG/Friendly-Telegram/raw/master/friendly-telegram/bot_avatar.png",  # noqa: E501
-                    reply_markup=self.inline._generate_markup(
-                        self.config["custom_buttons"]
-                    ),
-                )
-            ],
-            cache_time=0,
-        )
+        media = self.config["photo_url"]
+        kind = media_kind(media)
+        markup = self.inline._generate_markup(self.config["custom_buttons"])
+        caption = self.build_message()
+        results = aiogram.types.inline_query_result
+
+        if kind == "video":
+            result = results.InlineQueryResultVideo(
+                id=rand(20),
+                video_url=media,
+                mime_type="video/mp4",
+                thumb_url=DEFAULT_THUMB,
+                title="Send userbot info",
+                description="ℹ This will not compromise any sensitive data",
+                caption=caption,
+                parse_mode="html",
+                reply_markup=markup,
+            )
+        elif kind == "gif":
+            result = results.InlineQueryResultGif(
+                id=rand(20),
+                gif_url=media,
+                thumb_url=DEFAULT_THUMB,
+                title="Send userbot info",
+                caption=caption,
+                parse_mode="html",
+                reply_markup=markup,
+            )
+        else:
+            result = results.InlineQueryResultPhoto(
+                id=rand(20),
+                photo_url=media,
+                title="Send userbot info",
+                description="ℹ This will not compromise any sensitive data",
+                caption=caption,
+                parse_mode="html",
+                thumb_url=DEFAULT_THUMB,
+                reply_markup=markup,
+            )
+
+        await query.answer([result], cache_time=0)
 
     async def infocmd(self, message):
         """

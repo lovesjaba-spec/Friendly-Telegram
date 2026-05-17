@@ -32,6 +32,8 @@ from aiogram.types import (  # skipcq: PYL-C0412
     CallbackQuery,
     ChosenInlineResult,
     InlineQueryResultPhoto,
+    InlineQueryResultGif,
+    InlineQueryResultVideo,
     InputMediaPhoto,
 )
 
@@ -50,12 +52,28 @@ import inspect
 
 logger = logging.getLogger(__name__)
 
-photo = io.BytesIO(
-    requests.get(
-        "https://github.com/GeekTG/Friendly-Telegram/raw/master/friendly-telegram/bot_avatar.png" # noqa: E501, W505
-    ).content
+DEFAULT_THUMB = (
+    "https://github.com/GeekTG/Friendly-Telegram/raw/master/friendly-telegram/bot_avatar.png"  # noqa: E501
 )
+
+photo = io.BytesIO(requests.get(DEFAULT_THUMB).content)
 photo.name = "avatar.png"
+
+
+def media_kind(url):
+    """Guess inline media kind (photo/gif/video) from a URL extension"""
+    if not url or not isinstance(url, str):
+        return None
+
+    ext = url.split("?")[0].rsplit(".", 1)[-1].lower() if "." in url else ""
+
+    if ext == "gif":
+        return "gif"
+
+    if ext in ("mp4", "webm", "mov", "m4v"):
+        return "video"
+
+    return "photo"
 
 
 class InlineCall:
@@ -899,33 +917,55 @@ class InlineManager:
             return
 
         # Otherwise, answer it with templated form
-        await inline_query.answer(
-            [
-                InlineQueryResultPhoto(
-                    id=rand(20),
-                    title="GeekTG",
-                    photo_url=self._forms[query]["photo"],
-                    caption=self._forms[query]["text"],
-                    reply_markup=self._generate_markup(query),
-                    thumb_url=self._forms[query]["photo"],
-                    parse_mode="HTML",
-                )
-            ]
-            if self._forms[query]["photo"] else
-            [
-                InlineQueryResultArticle(
-                    id=rand(20),
-                    title="GeekTG",
-                    input_message_content=InputTextMessageContent(
-                        self._forms[query]["text"],
-                        "HTML",
-                        disable_web_page_preview=True,
-                    ),
-                    reply_markup=self._generate_markup(query),
-                )
-            ],
-            cache_time=60,
-        )
+        photo = self._forms[query]["photo"]
+        text = self._forms[query]["text"]
+        markup = self._generate_markup(query)
+        kind = media_kind(photo)
+
+        if kind == "video":
+            result = InlineQueryResultVideo(
+                id=rand(20),
+                title="GeekTG",
+                video_url=photo,
+                mime_type="video/mp4",
+                thumb_url=DEFAULT_THUMB,
+                caption=text,
+                reply_markup=markup,
+                parse_mode="HTML",
+            )
+        elif kind == "gif":
+            result = InlineQueryResultGif(
+                id=rand(20),
+                title="GeekTG",
+                gif_url=photo,
+                thumb_url=DEFAULT_THUMB,
+                caption=text,
+                reply_markup=markup,
+                parse_mode="HTML",
+            )
+        elif kind == "photo":
+            result = InlineQueryResultPhoto(
+                id=rand(20),
+                title="GeekTG",
+                photo_url=photo,
+                caption=text,
+                reply_markup=markup,
+                thumb_url=photo,
+                parse_mode="HTML",
+            )
+        else:
+            result = InlineQueryResultArticle(
+                id=rand(20),
+                title="GeekTG",
+                input_message_content=InputTextMessageContent(
+                    text,
+                    "HTML",
+                    disable_web_page_preview=True,
+                ),
+                reply_markup=markup,
+            )
+
+        await inline_query.answer([result], cache_time=60)
 
     async def _callback_query_handler(
         self, query: CallbackQuery, reply_markup: List[List[dict]] = None
@@ -1163,6 +1203,14 @@ class InlineManager:
         if isinstance(ttl, int) and (ttl > self._markup_ttl or ttl < 10):
             ttl = self._markup_ttl
             logger.debug("Defaulted ttl, because it breaks out of limits")
+
+        if not self.init_complete:
+            if isinstance(message, Message):
+                await utils.answer(message, text)
+            else:
+                await self._client.send_message(message, text)
+
+            return None
 
         form_uid = rand(30)
 
