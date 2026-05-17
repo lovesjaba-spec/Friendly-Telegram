@@ -60,3 +60,12 @@ class Strings:
 
     def __iter__(self):
         return self._strings.__iter__()
+
+    def get(self, key, default=None):
+        try:
+            return self.__getitem__(key)
+        except KeyError:
+            return default
+
+    def __contains__(self, key):
+        return key in self._strings
