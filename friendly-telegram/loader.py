@@ -214,6 +214,12 @@ class Module:
             self._db, self.__class__.__name__, key, default, item_type
         )
 
+    def get_prefix(self, *args):
+        return heroku_compat.command_prefix(self._db)
+
+    def get_prefixes(self, *args):
+        return [heroku_compat.command_prefix(self._db)]
+
 
 def _introspect(mod, suffix, marker):
     """Collect methods by name suffix or by Heroku decorator marker"""

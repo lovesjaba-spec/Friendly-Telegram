@@ -354,6 +354,14 @@ def lookup(allmodules, modname):
     return None
 
 
+def command_prefix(db):
+    """Return the userbot command prefix from the database."""
+    prefix = db.get("friendly-telegram.main", "command_prefix", False) or "."
+    if isinstance(prefix, list):
+        prefix = prefix[0] if prefix else "."
+    return prefix
+
+
 def inject(mod, client, db, tg_id, allmodules):
     """Inject Heroku-style attributes onto a freshly loaded module instance."""
     mod.client = mod._client = client
