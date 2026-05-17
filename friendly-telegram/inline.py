@@ -60,6 +60,13 @@ photo = io.BytesIO(requests.get(DEFAULT_THUMB).content)
 photo.name = "avatar.png"
 
 
+def bot_avatar():
+    """Fresh BytesIO copy of the bot avatar — a BytesIO is consumed once sent"""
+    avatar = io.BytesIO(photo.getvalue())
+    avatar.name = "avatar.png"
+    return avatar
+
+
 def media_kind(url):
     """Guess inline media kind (photo/gif/video) from a URL extension"""
     if not url or not isinstance(url, str):
@@ -434,7 +441,7 @@ class InlineManager:
             await asyncio.sleep(2)
 
             try:
-                await conv.send_file(photo)
+                await conv.send_file(bot_avatar())
                 await conv.get_response()
             except Exception:
                 # In case user was not able to send photo to
@@ -545,7 +552,7 @@ class InlineManager:
 
                         await asyncio.sleep(2)
 
-                        await conv.send_file(photo)
+                        await conv.send_file(bot_avatar())
                         await conv.get_response()
 
                         await asyncio.sleep(2)
