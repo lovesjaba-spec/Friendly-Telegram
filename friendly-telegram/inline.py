@@ -196,22 +196,39 @@ async def edit(
         logger.error("Invalid type for `text`")
         return False
 
-    if isinstance(reply_markup, list):
-        form["buttons"] = reply_markup
-    if isinstance(force_me, bool):
-        form["force_me"] = force_me
-    if isinstance(always_allow, list):
-        form["always_allow"] = always_allow
+    if form is not None:
+        if isinstance(reply_markup, list):
+            form["buttons"] = reply_markup
+        if isinstance(force_me, bool):
+            form["force_me"] = force_me
+        if isinstance(always_allow, list):
+            form["always_allow"] = always_allow
+
+    imid = inline_message_id or (
+        getattr(query, "inline_message_id", None) if query is not None else None
+    )
+    if not imid and form is not None:
+        imid = form.get("inline_message_id")
+
+    edit_kwargs = {
+        "text": text,
+        "parse_mode": ParseMode.HTML,
+        "link_preview_options": LinkPreviewOptions(
+            is_disabled=disable_web_page_preview
+        ),
+        "reply_markup": self._generate_markup(form_uid),
+    }
+    if imid:
+        edit_kwargs["inline_message_id"] = imid
+    elif form is not None and form.get("chat") and form.get("message_id"):
+        edit_kwargs["chat_id"] = form["chat"]
+        edit_kwargs["message_id"] = form["message_id"]
+    else:
+        logger.error("Cannot edit inline message: no target id")
+        return False
+
     try:
-        await self.bot.edit_message_text(
-            text,
-            inline_message_id=inline_message_id or query.inline_message_id,
-            parse_mode=ParseMode.HTML,
-            link_preview_options=LinkPreviewOptions(
-                is_disabled=disable_web_page_preview
-            ),
-            reply_markup=self._generate_markup(form_uid),
-        )
+        await self.bot.edit_message_text(**edit_kwargs)
     except TelegramRetryAfter as e:
         logger.info(f"Sleeping {e.retry_after}s on aiogram FloodWait...")
         await asyncio.sleep(e.retry_after)
@@ -813,6 +830,9 @@ class InlineManager:
 
     def _generate_markup(self, form_uid: Union[str, list], buttons: list = False) -> InlineKeyboardMarkup:
         """Generate markup for form"""
+        if not form_uid and not buttons:
+            return None
+
         keyboard = []
         if form_uid:
             for row in (
