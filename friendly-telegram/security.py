@@ -140,17 +140,26 @@ class SecurityManager:
         self._any_admin = db.get(__name__, "any_admin", False)
         self._default = db.get(__name__, "default", DEFAULT_PERMISSIONS)
         self._db = db
-        self._reload_rights()
 
     def _reload_rights(self) -> None:
-        self._owner = self._db.get(__name__, "owner", []).copy()
-        self._sudo = list(
-            set(
-                self._db.get(__name__, "sudo", []).copy()
-                + ([self._me] if hasattr(self, "_me") else [])
-            )
-        )
-        self._support = self._db.get(__name__, "support", []).copy()
+        """Kept for backwards compatibility; rights are now read live."""
+
+    # Rights are read live from the database, so owneradd/sudoadd/etc.
+    # take effect immediately without a restart.
+    @property
+    def _owner(self) -> list:
+        return list(self._db.get(__name__, "owner", []))
+
+    @property
+    def _sudo(self) -> list:
+        sudo = list(self._db.get(__name__, "sudo", []))
+        if getattr(self, "_me", None) is not None and self._me not in sudo:
+            sudo.append(self._me)
+        return sudo
+
+    @property
+    def _support(self) -> list:
+        return list(self._db.get(__name__, "support", []))
 
     async def init(self, client):
         self._client = client
