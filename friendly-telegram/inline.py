@@ -1142,6 +1142,7 @@ class InlineManager:
         always_allow: List[int] = None,
         ttl: Union[int, bool] = False,
         photo: str = None,
+        **kwargs,
     ) -> Union[str, bool]:
         """Creates inline form with callback
         Args:
@@ -1296,6 +1297,7 @@ class InlineManager:
         force_me: bool = False,
         always_allow: bool = False,
         ttl: int = False,
+        **kwargs,
     ) -> Union[bool, str]:  # sourcery skip: raise-specific-error
         """
         Processes inline gallery
