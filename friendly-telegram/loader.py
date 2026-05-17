@@ -362,6 +362,15 @@ class Modules:
 
             self.commands.update({command.lower(): instance.commands[command]})
 
+            func = instance.commands[command]
+            module_aliases = []
+            if isinstance(getattr(func, "alias", None), str):
+                module_aliases.append(func.alias)
+            if isinstance(getattr(func, "aliases", None), (list, tuple)):
+                module_aliases += [a for a in func.aliases if isinstance(a, str)]
+            for alias in module_aliases:
+                self.aliases[alias.lower()] = command.lower()
+
     def register_watcher(self, instance):
         """Register watcher(s) from instance"""
         new_watchers = []

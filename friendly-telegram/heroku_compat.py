@@ -54,12 +54,52 @@ def compat(code: str) -> str:
         flags=re.M,
     )
     code = re.sub(
+        r"^(\s*)from \.\.types import (.+)$",
+        r"\1from ..heroku_compat import \2",
+        code,
+        flags=re.M,
+    )
+    code = re.sub(
         r"^(\s*)from \.\.translations import (.+)$",
         r"\1from ..heroku_compat import _noop_import as \2",
         code,
         flags=re.M,
     )
     return code
+
+
+class CoreOverwriteError(Exception):
+    """Heroku error raised when a module overrides a core command."""
+
+
+class CoreUnloadError(Exception):
+    """Heroku error raised when a core module unload is attempted."""
+
+
+class SelfUnload(Exception):
+    """Heroku silent self-unload signal."""
+
+
+class SelfSuspend(Exception):
+    """Heroku self-suspend signal."""
+
+
+class StopLoop(Exception):
+    """Heroku loop-stop signal."""
+
+
+_AIOGRAM3_MARKERS = (
+    "LinkPreviewOptions",
+    "aiogram.enums",
+    "aiogram.client",
+    "from aiogram import Router",
+    "DefaultBotProperties",
+)
+
+
+def needs_aiogram3(code: str) -> bool:
+    """Detect a module that depends on aiogram v3 inline API."""
+    return any(marker in code for marker in _AIOGRAM3_MARKERS)
 
 
 def _marker(attr: str):
@@ -356,3 +396,15 @@ def inject(mod, client, db, tg_id, allmodules):
             value.module_instance = mod
             if value.autostart:
                 value.start()
+
+
+_TYPE_STUBS = {}
+
+
+def __getattr__(name):
+    if name in _TYPE_STUBS:
+        return _TYPE_STUBS[name]
+    logger.warning("heroku_compat: substituting stub for unknown Heroku name %r", name)
+    stub = type(name, (Exception,), {})
+    _TYPE_STUBS[name] = stub
+    return stub
