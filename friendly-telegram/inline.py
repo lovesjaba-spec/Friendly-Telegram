@@ -108,11 +108,20 @@ def media_kind(url):
 
 
 class InlineCall:
-    def __init__(self):
+    """Mutable wrapper around an aiogram CallbackQuery (frozen in aiogram 3)"""
+
+    def __init__(self, query=None):
+        self._query = query
         self.delete = None
         self.unload = None
         self.edit = None
-        super().__init__()
+        self.form = None
+
+    def __getattr__(self, name):
+        query = self.__dict__.get("_query")
+        if query is None or name.startswith("_"):
+            raise AttributeError(name)
+        return getattr(query, name)
 
 
 class BotMessage(AiogramMessage):
@@ -1093,6 +1102,8 @@ class InlineManager:
         if reply_markup is None:
             reply_markup = []
 
+        call = InlineCall(query)
+
         # First, dispatch all registered callback handlers
         for mod in self._allmodules.modules:
             if (
@@ -1105,7 +1116,7 @@ class InlineManager:
             for query_func in mod.callback_handlers.values():
                 if self.check_inline_security(query_func, query.from_user.id):
                     try:
-                        await query_func(query)
+                        await query_func(call)
                     except Exception:
                         logger.exception("Error on running callback watcher!")
                         await query.answer(
@@ -1127,21 +1138,21 @@ class InlineManager:
                         await query.answer("You are not allowed to press this button!")
                         return
 
-                    query.delete = functools.partial(
+                    call.delete = functools.partial(
                         delete, self=self, form=form, form_uid=form_uid
                     )
-                    query.unload = functools.partial(
+                    call.unload = functools.partial(
                         unload, self=self, form_uid=form_uid
                     )
-                    query.edit = functools.partial(
+                    call.edit = functools.partial(
                         edit, self=self, query=query, form=form, form_uid=form_uid
                     )
 
-                    query.form = {"id": form_uid, **form}
+                    call.form = {"id": form_uid, **form}
 
                     try:
                         return await button["callback"](
-                            query,
+                            call,
                             *button.get("args", []),
                             **button.get("kwargs", {}),
                         )
@@ -1169,7 +1180,7 @@ class InlineManager:
                 await query.answer("You are not allowed to press this button!")
                 return
 
-            await self._custom_map[query.data]["handler"](query)
+            await self._custom_map[query.data]["handler"](call)
             return
 
     async def _chosen_inline_handler(
@@ -1196,7 +1207,7 @@ class InlineManager:
 
                     query = query.split(maxsplit=1)[1] if len(query.split()) > 1 else ""
 
-                    call = InlineCall()
+                    call = InlineCall(chosen_inline_query)
 
                     call.delete = functools.partial(
                         delete, self=self, form=form, form_uid=form_uid
