@@ -50,7 +50,7 @@ setup_venv() {
 	python3 -m venv venv
 	say "Installing Python requirements"
 	venv/bin/pip install --upgrade pip wheel setuptools --quiet
-	venv/bin/pip install -r requirements.txt --upgrade --quiet
+	AIOHTTP_NO_EXTENSIONS=1 venv/bin/pip install -r requirements.txt --upgrade --quiet
 }
 
 main() {
