@@ -56,6 +56,7 @@ class UpdaterMod(loader.Module):
             "<i>🔄 Updating...</i>"
         ),
         "installing": "🔁 <b>Installing updates...</b>",
+        "update_failed": "🚫 <b>Update failed — check the logs</b>",
         "success": "✅ <b>Restart successful!</b>",
         "heroku_warning": (
             "⚠️ <b>Heroku API key has not been set.</b>\n"
@@ -86,6 +87,7 @@ class UpdaterMod(loader.Module):
             "<i>🔄 Обновляюсь...</i>"
         ),
         "installing": "🔁 <b>Установка обновлений...</b>",
+        "update_failed": "🚫 <b>Не удалось обновиться — смотрите логи</b>",
         "success": "✅ <b>Перезапуск успешен!</b>",
         "heroku_warning": (
             "⚠️ <b>API-ключ Heroku не установлен.</b>\n"
@@ -299,6 +301,7 @@ class UpdaterMod(loader.Module):
             )  # skipcq: BAN-B605
 
         try:
+            msgs = message
             try:
                 msgs = await utils.answer(message, self.strings("downloading", message))
             except telethon.errors.rpcerrorlist.MessageNotModifiedError:
@@ -330,7 +333,10 @@ class UpdaterMod(loader.Module):
                     self.req_common()
                 await self.restart_common(message)
         except GitCommandError:
-            await self.updatecmd(message, True)
+            if hard:
+                await utils.answer(message, self.strings("update_failed", message))
+            else:
+                await self.updatecmd(message, True)
 
     @loader.unrestricted
     async def sourcecmd(self, message: Message) -> None:
