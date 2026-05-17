@@ -19,12 +19,27 @@
 
 
 class Strings:
-    def __init__(self, prefix, strings, babel):
+    def __init__(self, prefix, base, translations, babel):
         self._prefix = prefix
-        self._strings = strings
+        self._strings = base
+        self._translations = translations
         self._babel = babel
 
+    def _lang_pack(self, lang_code=None):
+        if lang_code and lang_code in self._translations:
+            return self._translations[lang_code]
+
+        for lang in getattr(self._babel, "_languages", None) or []:
+            if lang in self._translations:
+                return self._translations[lang]
+
+        return None
+
     def __getitem__(self, key):
+        pack = self._lang_pack()
+        if pack is not None and key in pack:
+            return pack[key]
+
         return self._babel.getkey(self._prefix + key) or self._strings[key]
 
     def __call__(self, key, message=None):
@@ -34,6 +49,11 @@ class Strings:
             lang_code = None
         else:
             lang_code = getattr(getattr(message, "sender", None), "lang_code", None)
+
+        pack = self._lang_pack(lang_code)
+        if pack is not None and key in pack:
+            return pack[key]
+
         return (
             self._babel.getkey(f"{self._prefix}.{key}", lang_code) or self._strings[key]
         )

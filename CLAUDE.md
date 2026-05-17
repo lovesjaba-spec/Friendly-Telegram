@@ -83,6 +83,27 @@ db)` (main init), `on_unload` (cleanup, 5s budget), `*cmd` methods (commands), `
 incoming messages from other sessions). Prefer `utils.py` helpers (e.g. `get_args`) for
 compatibility.
 
+## Localization
+
+Modules support multiple languages via class-level `strings_<lang>` dicts (e.g. `strings_ru`)
+alongside the base `strings`. `translations/dynamic.Strings` picks a pack by the message sender's
+`lang_code` or the global `.setlang` preference, falling back to base `strings` per missing key.
+`send_config_one` in `loader.py` collects every `strings_*` dict attribute automatically.
+
+- `strings_ru` should contain only translated keys; omit pure-template keys (no text) to fall back.
+- Translatable command docs live under `_cmd_doc_<cmd>` keys and the class doc under `_cls_doc`.
+  `@loader.tds` fills these into base `strings` from English docstrings; add Russian equivalents to
+  `strings_ru` manually.
+- Keep `name` out of `strings_ru` — module names stay in the base language.
+
+## Message style
+
+User-facing messages use Telegram HTML. Keep one consistent style across modules:
+
+- Status prefix emoji: `✅` success, `🚫` error/denied, `⚠️` warning, `ℹ️` info, `🔄` in progress.
+- Header line: `<emoji> <b>Title</b>`; values/commands/IDs in `<code>`.
+- Multi-line output or lists go inside `<blockquote>`.
+
 ## Conventions
 
 - Do not write comments in code files.

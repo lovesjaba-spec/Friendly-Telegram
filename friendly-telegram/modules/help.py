@@ -24,7 +24,7 @@ class HelpMod(loader.Module):
 
     strings = {
         "name": "Help",
-        "bad_module": "<b>🚫 <b>Module</b> <code>{}</code> <b>not found</b>",
+        "bad_module": "🚫 <b>Module</b> <code>{}</code> <b>not found</b>",
         "single_mod_header": "📼 <b>{}</b>:",
         "single_cmd": "\n▫️ <code>{}{}</code> 👉🏻 ",
         "undoc_cmd": "🦥 No docs",
@@ -42,6 +42,29 @@ class HelpMod(loader.Module):
         "undoc_ihandler": "🦥 No docs",
         "joined": "👩‍💼 <b>Joined the</b> <a href='https://t.me/GeekTGChat'>support chat</a>",
         "join": "👩‍💼 <b>Join the</b> <a href='https://t.me/GeekTGChat'>support chat</a>",
+    }
+
+    strings_ru = {
+        "bad_module": "🚫 <b>Модуль</b> <code>{}</code> <b>не найден</b>",
+        "single_mod_header": "📼 <b>{}</b>:",
+        "undoc_cmd": "🦥 Нет описания",
+        "all_header": "👓 <b>Доступно модулей: {}, скрыто: {}</b>",
+        "core_header": "\n\n🛠 <b>Системные модули:</b>",
+        "plain_header": "\n\n📦 <b>Свои модули:</b>",
+        "args": "🚫 <b>Неверные аргументы</b>",
+        "set_cat": "ℹ️ <b>{} помещён в категорию {}</b>",
+        "no_mod": "🚫 <b>Укажите модуль для скрытия</b>",
+        "hidden_shown": "👓 <b>Скрыто модулей: {}, показано: {}</b>\n{}\n{}",
+        "undoc_ihandler": "🦥 Нет описания",
+        "joined": "👩‍💼 <b>Вступил в</b> <a href='https://t.me/GeekTGChat'>чат поддержки</a>",
+        "join": "👩‍💼 <b>Вступай в</b> <a href='https://t.me/GeekTGChat'>чат поддержки</a>",
+        "_cls_doc": "Модуль помощи, сделан специально для GeekTG с <3",
+        "_cmd_doc_help": "[модуль] [-f] - Показать справку",
+        "_cmd_doc_helphide": (
+            "<модуль или модули> - Скрыть модуль(-и) из справки\n"
+            "*Разделяйте модули пробелами"
+        ),
+        "_cmd_doc_support": "Вступить в чат поддержки GeekTG",
     }
 
     def __init__(self):

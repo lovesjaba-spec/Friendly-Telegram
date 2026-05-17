@@ -399,7 +399,13 @@ class Modules:
             mod.name = mod.strings["name"]
 
         if hasattr(mod, "strings") and babel is not None:
-            mod.strings = Strings(mod.__module__, mod.strings, babel)
+            translations = {
+                attr[len("strings_"):]: getattr(mod, attr)
+                for attr in dir(mod)
+                if attr.startswith("strings_")
+                and isinstance(getattr(mod, attr), dict)
+            }
+            mod.strings = Strings(mod.__module__, mod.strings, translations, babel)
 
         if skip_hook:
             return
