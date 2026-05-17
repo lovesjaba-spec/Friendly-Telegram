@@ -13,9 +13,21 @@ from .. import loader, utils, main, security
 from telethon.tl.functions.channels import JoinChannelRequest
 import logging
 
-from telethon.tl.types import Message
+from telethon.extensions import html as telethon_html
+from telethon.tl.types import Message, MessageEntityBlockquote
 
 logger = logging.getLogger(__name__)
+
+
+def expandable_html(text):
+    """HTML parse mode that makes every blockquote collapsible"""
+    txt, entities = telethon_html.parse(text)
+
+    for entity in entities:
+        if isinstance(entity, MessageEntityBlockquote):
+            entity.collapsed = True
+
+    return txt, entities
 
 
 @loader.tds
@@ -322,7 +334,7 @@ class HelpMod(loader.Module):
                 "".join(plain_).lstrip("\n")
             )
 
-        await utils.answer(message, reply)
+        await utils.answer(message, reply, parse_mode=expandable_html)
 
     async def supportcmd(self, message):
         """Joins the support GeekTG chat"""
