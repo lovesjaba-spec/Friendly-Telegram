@@ -98,7 +98,10 @@ class GeekInfoMod(loader.Module):
         """
         try:
             repo = git.Repo()
-            diff = repo.git.log(["HEAD..origin", "--oneline"])
+            remotes = {remote.name for remote in repo.remotes}
+            ref = "ftg_origin" if "ftg_origin" in remotes else "origin"
+            branch = repo.active_branch.name
+            diff = repo.git.log([f"HEAD..{ref}/{branch}", "--oneline"])
             upd = (
                 "⚠️ Update required </b><code>.update</code><b>"
                 if diff
