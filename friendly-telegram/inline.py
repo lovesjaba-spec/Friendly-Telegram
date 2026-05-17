@@ -206,17 +206,19 @@ async def edit(
     except TelegramBadRequest as e:
         msg = str(e).lower()
         if "not modified" in msg:
-            try:
-                await query.answer()
-            except TelegramBadRequest:
-                pass
+            if query is not None:
+                try:
+                    await query.answer()
+                except TelegramBadRequest:
+                    pass
         elif "message to edit not found" in msg or "message_id_invalid" in msg:
-            try:
-                await query.answer(
-                    "I should have edited some message, but it is deleted :("
-                )
-            except TelegramBadRequest:
-                pass
+            if query is not None:
+                try:
+                    await query.answer(
+                        "I should have edited some message, but it is deleted :("
+                    )
+                except TelegramBadRequest:
+                    pass
         else:
             logger.exception("Failed to edit inline message")
 
@@ -317,6 +319,42 @@ async def answer(
         return False
 
     return True
+
+
+class InlineForm:
+    """Editable handle for an inline form (Heroku-compatible return value)"""
+
+    def __init__(self, manager, form_uid):
+        self._manager = manager
+        self.form_uid = form_uid
+        form = manager._forms.get(form_uid, {})
+        self.inline_message_id = form.get("inline_message_id")
+        self.chat_id = form.get("chat")
+        self.message_id = form.get("message_id")
+        self.form = {"id": form_uid, **form}
+
+    def __str__(self):
+        return self.form_uid
+
+    async def edit(self, *args, **kwargs):
+        return await edit(
+            *args,
+            self=self._manager,
+            form=self._manager._forms.get(self.form_uid),
+            form_uid=self.form_uid,
+            inline_message_id=self.inline_message_id,
+            **kwargs,
+        )
+
+    async def delete(self):
+        return await delete(
+            self=self._manager,
+            form=self._manager._forms.get(self.form_uid),
+            form_uid=self.form_uid,
+        )
+
+    async def unload(self):
+        return await unload(self=self._manager, form_uid=self.form_uid)
 
 
 class InlineManager:
@@ -719,6 +757,10 @@ class InlineManager:
         self._task.cancel()
         self._cleaner_task.cancel()
 
+    def generate_markup(self, form_uid, buttons=False):
+        """Heroku-compatible public alias for _generate_markup"""
+        return self._generate_markup(form_uid, buttons)
+
     def _generate_markup(self, form_uid: Union[str, list], buttons: list = False) -> InlineKeyboardMarkup:
         """Generate markup for form"""
         keyboard = []
@@ -1090,6 +1132,11 @@ class InlineManager:
     ) -> None:
         query = chosen_inline_query.query
 
+        if query in self._forms and chosen_inline_query.inline_message_id:
+            self._forms[query]["inline_message_id"] = (
+                chosen_inline_query.inline_message_id
+            )
+
         for form_uid, form in self._forms.copy().items():
             for button in array_sum(form.get("buttons", [])):
                 if (
@@ -1287,7 +1334,12 @@ class InlineManager:
         if isinstance(message, Message):
             await message.delete()
 
-        return form_uid
+        for _ in range(30):
+            if self._forms.get(form_uid, {}).get("inline_message_id"):
+                break
+            await asyncio.sleep(0.1)
+
+        return InlineForm(self, form_uid)
 
     async def gallery(
         self,
