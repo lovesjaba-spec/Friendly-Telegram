@@ -295,6 +295,11 @@ class AnswerResult(list):
 
 async def answer(message, response, **kwargs):
     """Use this to give the response to a command"""
+    # A userbot account cannot attach inline keyboards to its own messages;
+    # Heroku modules pass `reply_markup` here, so drop it instead of crashing
+    kwargs.pop("reply_markup", None)
+    kwargs.pop("silent", None)
+
     if isinstance(message, list):
         delete_job = asyncio.ensure_future(
             message[0].client.delete_messages(message[0].input_chat, message[1:])
