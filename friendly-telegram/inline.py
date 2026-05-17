@@ -839,6 +839,25 @@ class InlineManager:
                         btn["url"] = button["url"]
                     elif "callback" in button:
                         btn["callback_data"] = button["_callback_data"]
+                        if isinstance(form_uid, str) and form_uid in self._forms:
+                            default_force = self._forms[form_uid].get(
+                                "force_me", True
+                            )
+                            default_allow = self._forms[form_uid].get(
+                                "always_allow", []
+                            )
+                        else:
+                            default_force = True
+                            default_allow = []
+                        self._custom_map[button["_callback_data"]] = {
+                            "handler": button["callback"],
+                            "args": button.get("args", ()),
+                            "kwargs": button.get("kwargs", {}),
+                            "force_me": button.get("force_me", default_force),
+                            "always_allow": button.get(
+                                "always_allow", default_allow
+                            ),
+                        }
                     elif "input" in button:
                         btn["switch_inline_query_current_chat"] = (
                             button["_switch_query"] + " "
@@ -1169,18 +1188,29 @@ class InlineManager:
                     del self._forms[form_uid]
 
         if query.data in self._custom_map:
+            entry = self._custom_map[query.data]
             if (
-                self._custom_map[query.data]["force_me"]
+                entry["force_me"]
                 and query.from_user.id != self._me
                 and query.from_user.id
                 not in self._client.dispatcher.security._owner  # skipcq: PYL-W0212
-                and query.from_user.id
-                not in self._custom_map[query.data]["always_allow"]
+                and query.from_user.id not in entry["always_allow"]
             ):
                 await query.answer("You are not allowed to press this button!")
                 return
 
-            await self._custom_map[query.data]["handler"](call)
+            try:
+                await entry["handler"](
+                    call,
+                    *entry.get("args", ()),
+                    **entry.get("kwargs", {}),
+                )
+            except Exception:
+                logger.exception("Error on running callback watcher!")
+                await query.answer(
+                    "Error occurred while processing request. More info in logs",
+                    show_alert=True,
+                )
             return
 
     async def _chosen_inline_handler(
