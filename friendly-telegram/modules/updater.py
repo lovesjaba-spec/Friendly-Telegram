@@ -136,19 +136,22 @@ class UpdaterMod(loader.Module):
         )[0]
         await self.restart_common(msg)
 
-    async def prerestart_common(self, message: Message) -> None:
+    async def prerestart_common(self, message: Message) -> bool:
         logger.debug(f"Self-update. {sys.executable} -m {utils.get_base_dir()}")
 
         check = str(uuid.uuid4())
         await self._db.set(__name__, "selfupdatecheck", check)
         await asyncio.sleep(3)
         if self._db.get(__name__, "selfupdatecheck", "") != check:
-            raise ValueError("An update is already in progress!")
+            logger.warning("Restart aborted: another update/restart is in progress")
+            return False
         self._db.set(__name__, "selfupdatechat", utils.get_chat_id(message))
         await self._db.set(__name__, "selfupdatemsg", message.id)
+        return True
 
     async def restart_common(self, message: Message) -> None:
-        await self.prerestart_common(message)
+        if not await self.prerestart_common(message):
+            return
         atexit.register(functools.partial(restart, *sys.argv[1:]))
         [handler] = logging.getLogger().handlers
         handler.setLevel(logging.CRITICAL)
