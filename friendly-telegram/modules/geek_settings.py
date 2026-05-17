@@ -38,6 +38,10 @@ class GeekSettingsMod(loader.Module):
         "inline_settings": "⚙️ <b>Here you can configure your GeekTG settings</b>",
         "confirm_update": "🪂 <b>Please, confirm that you want to update. Your userbot will be restarted</b>",
         "confirm_restart": "🔄 <b>Please, confirm that you want to restart</b>",
+        "_inline_doc": (
+            "Global inline mode. Disable to make all modules send plain text. "
+            "Restart required"
+        ),
     }
 
     strings_ru = {
@@ -67,7 +71,18 @@ class GeekSettingsMod(loader.Module):
         ),
         "_cmd_doc_nonickuser": "Разрешить выполнять команду без никнейма",
         "_cmd_doc_settings": "Показать меню настроек",
+        "_inline_doc": (
+            "Глобальный inline-режим. Отключите, чтобы все модули слали "
+            "обычный текст. Нужен перезапуск"
+        ),
     }
+
+    def __init__(self):
+        self.config = loader.ModuleConfig(
+            "inline",
+            True,
+            lambda: self.strings("_inline_doc"),
+        )
 
     def get_watchers(self) -> tuple:
         return [

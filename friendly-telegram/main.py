@@ -566,7 +566,9 @@ async def amain(first, client, allclients, web, arguments):
 
     modules = loader.Modules(
         use_inline=arguments.use_inline
-        and not db.get(__name__, "disable_inline", False)
+        and db.get(
+            "friendly-telegram.modules.geek_settings", "__config__", {}
+        ).get("inline", True)
     )
     no_nickname = arguments.no_nickname
 

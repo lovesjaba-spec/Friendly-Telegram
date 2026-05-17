@@ -55,11 +55,6 @@ class CoreMod(loader.Module):
         "packs_cleared": "✅ <b>Translations cleared</b>",
         "lang_set": "✅ <b>Language changed</b>",
         "db_cleared": "✅ <b>Database cleared</b>",
-        "inline_enabled": "✅ <b>Inline mode enabled. Restart required</b>",
-        "inline_disabled": (
-            "✅ <b>Inline mode disabled — modules will send plain text. "
-            "Restart required</b>"
-        ),
         "geek": (
             "🕶 <b>Congrats! You are Geek!</b>\n\n"
             "<b>GeekTG version: {}.{}.{}</b>\n"
@@ -109,11 +104,6 @@ class CoreMod(loader.Module):
         "packs_cleared": "✅ <b>Языковые паки очищены</b>",
         "lang_set": "✅ <b>Язык изменён</b>",
         "db_cleared": "✅ <b>База данных очищена</b>",
-        "inline_enabled": "✅ <b>Inline-режим включён. Требуется перезапуск</b>",
-        "inline_disabled": (
-            "✅ <b>Inline-режим выключен — модули будут слать обычный текст. "
-            "Требуется перезапуск</b>"
-        ),
         "geek": (
             "🕶 <b>Поздравляем! Вы Geek!</b>\n\n"
             "<b>Версия GeekTG: {}.{}.{}</b>\n"
@@ -171,10 +161,6 @@ class CoreMod(loader.Module):
             "После применения нужен перезапуск"
         ),
         "_cmd_doc_cleardb": "Полностью очищает базу данных (сброс к заводским настройкам)",
-        "_cmd_doc_inlinemode": (
-            "Переключить inline-режим. При выключении модули шлют обычный текст\n"
-            "После применения нужен перезапуск"
-        ),
     }
 
     async def client_ready(self, client, db):
@@ -422,18 +408,6 @@ class CoreMod(loader.Module):
         langs = utils.get_args(message)
         self._db.set(main.__name__, "language", langs)
         await utils.answer(message, self.strings("lang_set", message))
-
-    async def inlinemodecmd(self, message: Message) -> None:
-        """Toggle inline mode. When disabled, modules send plain text
-        Restart required after use"""
-        disabled = not self._db.get(main.__name__, "disable_inline", False)
-        self._db.set(main.__name__, "disable_inline", disabled)
-        await utils.answer(
-            message,
-            self.strings(
-                "inline_disabled" if disabled else "inline_enabled", message
-            ),
-        )
 
     @loader.owner
     async def cleardbcmd(self, message: Message) -> None:
