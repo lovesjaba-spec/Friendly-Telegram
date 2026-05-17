@@ -173,7 +173,7 @@ def get_git_info():
         ver = ""
     return [
         ver,
-        f"https://github.com/GeekTG/Friendly-Telegram/commit/{ver}"
+        f"https://github.com/lovesjaba-spec/Friendly-Telegram/commit/{ver}"
         if ver
         else "",
     ]
