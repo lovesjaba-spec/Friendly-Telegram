@@ -58,6 +58,18 @@ class UpdaterMod(loader.Module):
         "installing": "🔁 <b>Installing updates...</b>",
         "update_failed": "🚫 <b>Update failed — check the logs</b>",
         "success": "✅ <b>Restart successful!</b>",
+        "success_changelog": (
+            "✅ <b>Restart successful!</b>\n"
+            "🆕 <b>Applied {} update(s):</b>\n"
+            "<blockquote>{}</blockquote>"
+        ),
+        "update_notification": (
+            "🆕 <b>A GeekTG update is available — {} new commit(s):</b>\n"
+            "<blockquote>{}</blockquote>\n"
+            "<i>Run </i><code>.update</code><i> to install it</i>"
+        ),
+        "check_update_doc": "Check the repo for new commits in the background",
+        "check_interval_doc": "How often (in hours) to check for updates",
         "heroku_warning": (
             "⚠️ <b>Heroku API key has not been set.</b>\n"
             "Update was successful but updates will reset every time the bot restarts."
@@ -89,6 +101,18 @@ class UpdaterMod(loader.Module):
         "installing": "🔁 <b>Установка обновлений...</b>",
         "update_failed": "🚫 <b>Не удалось обновиться — смотрите логи</b>",
         "success": "✅ <b>Перезапуск успешен!</b>",
+        "success_changelog": (
+            "✅ <b>Перезапуск успешен!</b>\n"
+            "🆕 <b>Применено обновлений: {}</b>\n"
+            "<blockquote>{}</blockquote>"
+        ),
+        "update_notification": (
+            "🆕 <b>Доступно обновление GeekTG — новых коммитов: {}</b>\n"
+            "<blockquote>{}</blockquote>\n"
+            "<i>Выполните </i><code>.update</code><i> для установки</i>"
+        ),
+        "check_update_doc": "Фоновая проверка репозитория на новые коммиты",
+        "check_interval_doc": "Как часто (в часах) проверять обновления",
         "heroku_warning": (
             "⚠️ <b>API-ключ Heroku не установлен.</b>\n"
             "Обновление прошло успешно, но изменения будут сбрасываться при каждом перезапуске бота."
@@ -112,6 +136,12 @@ class UpdaterMod(loader.Module):
             "GIT_ORIGIN_URL",
             "https://github.com/lovesjaba-spec/Friendly-Telegram",
             lambda m: self.strings("origin_cfg_doc", m),
+            "AUTO_CHECK_UPDATE",
+            True,
+            lambda m: self.strings("check_update_doc", m),
+            "UPDATE_CHECK_INTERVAL",
+            6,
+            lambda m: self.strings("check_interval_doc", m),
         )
 
     def _updater_remote(self, repo):
@@ -285,6 +315,11 @@ class UpdaterMod(loader.Module):
                 )
 
             if changelog:
+                self._db.set(
+                    __name__,
+                    "update_changelog",
+                    [commit.summary for commit in changelog[:10]],
+                )
                 message = (
                     await utils.answer(
                         message,
@@ -366,15 +401,71 @@ class UpdaterMod(loader.Module):
 
         self._db.set(__name__, "selfupdatechat", None)
         self._db.set(__name__, "selfupdatemsg", None)
+        self._db.set(__name__, "update_changelog", None)
+
+        asyncio.ensure_future(self._update_watchdog())
+
+    async def _update_watchdog(self) -> None:
+        await asyncio.sleep(60)
+
+        while True:
+            if self.config["AUTO_CHECK_UPDATE"]:
+                try:
+                    await self._notify_if_outdated()
+                except Exception:
+                    logger.exception("Background update check failed")
+
+            try:
+                interval = float(self.config["UPDATE_CHECK_INTERVAL"])
+            except (TypeError, ValueError):
+                interval = 6
+
+            await asyncio.sleep(max(interval, 0.5) * 3600)
+
+    async def _notify_if_outdated(self) -> None:
+        if "DYNO" in os.environ:
+            return
+
+        changelog = await self.get_changelog()
+
+        if not changelog:
+            return
+
+        latest = changelog[0].hexsha
+
+        if self._db.get(__name__, "last_update_notified", None) == latest:
+            return
+
+        self._db.set(__name__, "last_update_notified", latest)
+
+        await self._client.send_message(
+            self._me.id,
+            self.strings("update_notification").format(
+                len(changelog),
+                "\n".join(
+                    f"▫️ {utils.escape_html(commit.summary)}"
+                    for commit in changelog[:10]
+                ),
+            ),
+        )
 
     async def update_complete(self, client):
         logger.debug("Self update successful! Edit message")
         heroku_key = os.environ.get("heroku_api_token")
         herokufail = ("DYNO" in os.environ) and (heroku_key is None)
 
+        changelog = self._db.get(__name__, "update_changelog", None)
+
         if herokufail:
             logger.warning("heroku token not set")
             msg = self.strings("heroku_warning")
+        elif changelog:
+            msg = self.strings("success_changelog").format(
+                len(changelog),
+                "\n".join(
+                    f"▫️ {utils.escape_html(summary)}" for summary in changelog
+                ),
+            )
         else:
             logger.debug("Self update successful! Edit message")
             msg = self.strings("success")
