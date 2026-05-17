@@ -288,7 +288,6 @@ class CommandDispatcher:
                         old_respond = message.respond
 
                         def process_text(text):
-                            nonlocal grep, ungrep
                             res = []
 
                             for line in text.split("\n"):

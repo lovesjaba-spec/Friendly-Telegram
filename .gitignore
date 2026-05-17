@@ -12,7 +12,7 @@ database-*.json
 venv/
 data/
 mishase_cache/
-translations/
+/translations/
 api_token.txt
 .coverage
 .vscode/

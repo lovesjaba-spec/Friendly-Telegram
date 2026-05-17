@@ -638,7 +638,6 @@ class InlineManager:
         revoke = self._dp_revoke_token
 
         async def new(*args, **kwargs):
-            nonlocal revoke, old
             try:
                 return await old(*args, **kwargs)
             except aiogram.utils.exceptions.TerminatedByOtherGetUpdates:
