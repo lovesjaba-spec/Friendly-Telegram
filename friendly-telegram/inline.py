@@ -1218,6 +1218,12 @@ class InlineManager:
                         default one (1 day) and must be either `int` or `False`
         """
 
+        if isinstance(message, (list, tuple)) and message:
+            message = message[0]
+
+        if hasattr(message, "message") and not isinstance(message, Message):
+            message = message.message
+
         if reply_markup:
             if isinstance(reply_markup, dict):
                 reply_markup = [[reply_markup]]
@@ -1378,6 +1384,12 @@ class InlineManager:
                     be bigger, than default one (1 day)
                     and must be either `int` or `False`
         """
+
+        if isinstance(message, (list, tuple)) and message:
+            message = message[0]
+
+        if hasattr(message, "message") and not isinstance(message, Message):
+            message = message.message
 
         if not isinstance(caption, str) and not callable(caption):
             logger.error("Invalid type for `caption`")
