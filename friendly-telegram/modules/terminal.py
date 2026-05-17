@@ -280,12 +280,12 @@ class TerminalMod(loader.Module):
 
     strings = {
         "name": "Terminal",
-        "running": "🖥 <b>Shell:</b> <code>{}</code>\n",
-        "finished": "🏁 <b>Exit code:</b> <code>{}</code>\n",
-        "stdout": "\n📤 <b>Stdout:</b>\n<code>",
-        "stderr": "</code>\n\n📥 <b>Stderr:</b>\n<code>",
-        "end": "</code>",
-        "time_exec": "\n⏱ <b>Done in</b> <code>{}s</code>",
+        "running": "⌨️ <b>Shell command</b> <code>{}</code>\n",
+        "finished": "<b>Exit code </b> <code>{}</code>\n",
+        "stdout": '<b>📼 Stdout:</b>\n<pre><code class="language-stdout">',
+        "stderr": '</code></pre>\n<b>📼 Stderr:</b>\n<pre><code class="language-stderr">',
+        "end": "</code></pre>",
+        "time_exec": "\n💫 <b>Execution time: {}s</b>",
         "auth_needed": (
             "⚠️ <b>Sudo wants a password.</b> "
             '<a href="tg://user?id={}">Open this chat</a> '
@@ -312,12 +312,12 @@ class TerminalMod(loader.Module):
     }
 
     strings_ru = {
-        "running": "🖥 <b>Терминал:</b> <code>{}</code>\n",
-        "finished": "🏁 <b>Код выхода:</b> <code>{}</code>\n",
-        "stdout": "\n📤 <b>Вывод:</b>\n<code>",
-        "stderr": "</code>\n\n📥 <b>Ошибки:</b>\n<code>",
-        "end": "</code>",
-        "time_exec": "\n⏱ <b>Выполнено за</b> <code>{}с</code>",
+        "running": "⌨️ <b>Системная команда</b> <code>{}</code>\n",
+        "finished": "<b>Код выхода </b> <code>{}</code>\n",
+        "stdout": '<b>📼 Stdout:</b>\n<pre><code class="language-stdout">',
+        "stderr": '</code></pre>\n<b>📼 Stderr:</b>\n<pre><code class="language-stderr">',
+        "end": "</code></pre>",
+        "time_exec": "\n💫 <b>Время выполнения: {}s</b>",
         "auth_needed": (
             "⚠️ <b>Sudo запрашивает пароль.</b> "
             '<a href="tg://user?id={}">Открой этот чат</a> '
