@@ -171,6 +171,21 @@ class ModuleConfig(dict):
         entry = self._config.get(key)
         return getattr(entry, "validator", None) if entry is not None else None
 
+    def __getitem__(self, key):
+        config = getattr(self, "_config", None)
+        if config is not None and key in config:
+            return config[key].value
+        return super().__getitem__(key)
+
+    def __setitem__(self, key, value):
+        # Keep both the dict and the backing ConfigValue in sync, otherwise
+        # code reading ConfigValue.value (e.g. Heroku's DBBackedModuleConfig)
+        # sees stale defaults and config resets on restart.
+        config = getattr(self, "_config", None)
+        if config is not None and key in config:
+            config[key].value = value
+        super().__setitem__(key, value)
+
     def getdoc(self, key, message=None):
         """Get the documentation by key"""
         if key in getattr(self, "_config", {}):
