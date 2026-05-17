@@ -6,6 +6,20 @@
 <img src="https://github.com/GeekTG/assets/raw/master/geektg.gif"></img>
 <a href="https://cloud.okteto.com/#/deploy?repository=https://github.com/GeekTG/Friendly-Telegram"><img src="https://lilwonka.ml/temp/okteto.png" height="65"></a>
 <a href="https://t.me/lavhostbot?start=R2Vla1RH"><img src="https://github.com/GeekTG/assets/raw/master/lavhost.png" height="65"></a>
+<h3>⚡ Quick start</h3>
+<p>One-line install (Debian/Ubuntu/Arch/Termux) — installs dependencies, sets up a virtualenv and launches the bot:</p>
+
+```bash
+curl -Ls https://raw.githubusercontent.com/lovesjaba-spec/Friendly-Telegram/master/setup.sh | bash
+```
+
+<p>Or clone and run the installer manually:</p>
+
+```bash
+git clone https://github.com/lovesjaba-spec/Friendly-Telegram
+cd Friendly-Telegram
+./setup.sh
+```
 <hr>
 <h2><img src="https://github.com/GeekTG/assets/raw/master/56-document-outline.gif" align="center" width="45">Changes</h2>
 <ul>
