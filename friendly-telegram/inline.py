@@ -38,6 +38,8 @@ from aiogram.types import (  # skipcq: PYL-C0412
     InlineQueryResultVideo,
     InputMediaPhoto,
     LinkPreviewOptions,
+    WebAppInfo,
+    CopyTextButton,
 )
 
 from aiogram.types import Message as AiogramMessage
@@ -50,6 +52,18 @@ from aiogram.exceptions import (
 )
 
 _NO_PREVIEW = LinkPreviewOptions(is_disabled=True)
+
+_BUTTON_KEYS = (
+    "url",
+    "callback",
+    "input",
+    "data",
+    "web_app",
+    "copy",
+    "switch_inline_query",
+    "switch_inline_query_current_chat",
+    "action",
+)
 
 from . import utils
 import logging
@@ -761,6 +775,33 @@ class InlineManager:
         """Heroku-compatible public alias for _generate_markup"""
         return self._generate_markup(form_uid, buttons)
 
+    async def _action_close(self, call, *args, **kwargs):
+        if getattr(call, "delete", None):
+            await call.delete()
+
+    async def _action_unload(self, call, *args, **kwargs):
+        if getattr(call, "unload", None):
+            await call.unload()
+
+    async def _action_answer(self, call, *args, text="", show_alert=True, **kwargs):
+        await call.answer(text, show_alert=show_alert)
+
+    def _resolve_action(self, button):
+        """Translate a Heroku `action` button into a callback button"""
+        if "callback" in button or "action" not in button:
+            return
+        action = button.get("action")
+        if action == "close":
+            button["callback"] = self._action_close
+        elif action == "unload":
+            button["callback"] = self._action_unload
+        elif action == "answer":
+            button["callback"] = functools.partial(
+                self._action_answer,
+                text=button.get("message", ""),
+                show_alert=button.get("show_alert", True),
+            )
+
     def _generate_markup(self, form_uid: Union[str, list], buttons: list = False) -> InlineKeyboardMarkup:
         """Generate markup for form"""
         keyboard = []
@@ -769,6 +810,8 @@ class InlineManager:
                 self._forms[form_uid]["buttons"] if isinstance(form_uid, str) else form_uid
             ):
                 for button in row:
+                    self._resolve_action(button)
+
                     if "callback" in button and "_callback_data" not in button:
                         button["_callback_data"] = rand(30)
 
@@ -781,40 +824,42 @@ class InlineManager:
             line = []
             for button in row:
                 try:
+                    btn = {"text": str(button["text"])}
+
                     if "url" in button:
-                        line += [
-                            InlineKeyboardButton(
-                                text=button["text"], url=button.get("url", None)
-                            )
-                        ]
+                        btn["url"] = button["url"]
                     elif "callback" in button:
-                        line += [
-                            InlineKeyboardButton(
-                                text=button["text"],
-                                callback_data=button["_callback_data"],
-                            )
-                        ]
+                        btn["callback_data"] = button["_callback_data"]
                     elif "input" in button:
-                        line += [
-                            InlineKeyboardButton(
-                                text=button["text"],
-                                switch_inline_query_current_chat=(
-                                    button["_switch_query"] + " "
-                                ),
-                            )
-                        ]
+                        btn["switch_inline_query_current_chat"] = (
+                            button["_switch_query"] + " "
+                        )
                     elif "data" in button:
-                        line += [
-                            InlineKeyboardButton(
-                                text=button["text"], callback_data=button["data"]
-                            )
+                        btn["callback_data"] = button["data"]
+                    elif "web_app" in button:
+                        web_app = button["web_app"]
+                        btn["web_app"] = (
+                            WebAppInfo(url=web_app)
+                            if isinstance(web_app, str)
+                            else WebAppInfo(**web_app)
+                        )
+                    elif "copy" in button:
+                        btn["copy_text"] = CopyTextButton(text=str(button["copy"]))
+                    elif "switch_inline_query_current_chat" in button:
+                        btn["switch_inline_query_current_chat"] = button[
+                            "switch_inline_query_current_chat"
                         ]
+                    elif "switch_inline_query" in button:
+                        btn["switch_inline_query"] = button["switch_inline_query"]
                     else:
                         logger.warning(
                             "Button have not been added to "
                             "form, because it is not structured "
                             f"properly. {button}"
                         )
+                        continue
+
+                    line += [InlineKeyboardButton(**btn)]
                 except KeyError:
                     logger.exception(
                         "Error while forming markup! Probably, you "
@@ -1256,10 +1301,7 @@ class InlineManager:
 
         if not all(
             all(
-                "url" in button
-                or "callback" in button
-                or "input" in button
-                or "data" in button
+                any(key in button for key in _BUTTON_KEYS)
                 for button in row
             )
             for row in reply_markup
@@ -1267,10 +1309,7 @@ class InlineManager:
             logger.error(
                 "Invalid button specified. "
                 "Button must contain one of the following fields:\n"
-                "  - `url`\n"
-                "  - `callback`\n"
-                "  - `input`\n"
-                "  - `data`"
+                "  - " + "\n  - ".join(f"`{key}`" for key in _BUTTON_KEYS)
             )
             return False
 
