@@ -1399,5 +1399,13 @@ class InlineManager:
         return gallery_uid
 
 
+InlineQuery = GeekInlineQuery
+InlineMessage = BotMessage
+BotInlineMessage = BotMessage
+BotInlineCall = InlineCall
+InlineUnit = InlineCall
+HerokuReplyMarkup = Union[List[List[dict]], List[dict], dict]
+
+
 if __name__ == "__main__":
     raise Exception("This file must be called as a module")

@@ -32,7 +32,7 @@ from telethon.tl.types import Message
 
 import requests
 
-from .. import loader, utils, main
+from .. import loader, utils, main, heroku_compat
 
 logger = logging.getLogger(__name__)
 
@@ -405,6 +405,8 @@ class LoaderMod(loader.Module):
                     message, self.strings("version_incompatible").format(ver)
                 )
                 return
+
+        doc = heroku_compat.compat(doc)
 
         developer = re.search(r"# ?meta developer: ?(.+)", doc)
         developer = developer.group(1) if developer else False

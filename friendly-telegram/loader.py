@@ -28,7 +28,7 @@ import os
 import sys
 import json
 
-from . import utils, security, inline
+from . import utils, security, inline, heroku_compat
 from .translations.dynamic import Strings
 
 
@@ -75,6 +75,19 @@ group_admin = security.group_admin
 group_member = security.group_member
 pm = security.pm
 unrestricted = security.unrestricted
+inline_everyone = getattr(security, "inline_everyone", unrestricted)
+
+command = heroku_compat.command
+watcher = heroku_compat.watcher
+inline_handler = heroku_compat.inline_handler
+callback_handler = heroku_compat.callback_handler
+raw_handler = heroku_compat.raw_handler
+debug_method = heroku_compat.debug_method
+tag = heroku_compat.tag
+loop = heroku_compat.loop
+ConfigValue = heroku_compat.ConfigValue
+validators = heroku_compat.validators
+InfiniteLoop = heroku_compat.InfiniteLoop
 
 MODULES_NAME = "modules"
 ru_keys = """ёйцукенгшщзхъфывапролджэячсмитьбю.Ё"№;%:?ЙЦУКЕНГ
@@ -129,18 +142,26 @@ class ModuleConfig(dict):
     """Like a dict but contains doc for each key"""
 
     def __init__(self, *entries):
-        keys = []
-        values = []
-        defaults = []
-        docstrings = []
-        for i, entry in enumerate(entries):
-            if i % 3 == 0:
-                keys.append(entry)
-            elif i % 3 == 1:
-                values.append(entry)
-                defaults.append(entry)
-            else:
-                docstrings.append(entry)
+        if entries and all(
+            isinstance(entry, heroku_compat.ConfigValue) for entry in entries
+        ):
+            keys = [entry.option for entry in entries]
+            values = [entry.value for entry in entries]
+            defaults = [entry.default for entry in entries]
+            docstrings = [entry.doc for entry in entries]
+        else:
+            keys = []
+            values = []
+            defaults = []
+            docstrings = []
+            for i, entry in enumerate(entries):
+                if i % 3 == 0:
+                    keys.append(entry)
+                elif i % 3 == 1:
+                    values.append(entry)
+                    defaults.append(entry)
+                else:
+                    docstrings.append(entry)
 
         super().__init__(zip(keys, values))
         self._docstrings = dict(zip(keys, docstrings))
@@ -182,39 +203,48 @@ class Module:
     async def _client_ready2(self, client, db):
         pass
 
+    def get(self, key, default=None):
+        return self._db.get(self.__class__.__name__, key, default)
+
+    def set(self, key, value):
+        return self._db.set(self.__class__.__name__, key, value)
+
+    def pointer(self, key, default=None, item_type=None):
+        return heroku_compat.make_pointer(
+            self._db, self.__class__.__name__, key, default, item_type
+        )
+
+
+def _introspect(mod, suffix, marker):
+    """Collect methods by name suffix or by Heroku decorator marker"""
+    result = {}
+    for method_name in dir(mod):
+        try:
+            method = getattr(mod, method_name)
+        except Exception:
+            continue
+        if not callable(method):
+            continue
+        if len(method_name) > len(suffix) and method_name.endswith(suffix):
+            result[method_name[: -len(suffix)]] = method
+        elif getattr(method, marker, False):
+            result.setdefault(method_name, method)
+    return result
+
 
 def get_commands(mod):
     """Introspect the module to get its commands"""
-    # https://stackoverflow.com/a/34452/5509575
-    return {
-        method_name[:-3]: getattr(mod, method_name)
-        for method_name in dir(mod)
-        if callable(getattr(mod, method_name))
-        and len(method_name) > 3
-        and method_name[-3:] == "cmd"
-    }
+    return _introspect(mod, "cmd", "is_command")
 
 
 def get_inline_handlers(mod):
     """Introspect the module to get its inline handlers"""
-    return {
-        method_name[:-15]: getattr(mod, method_name)
-        for method_name in dir(mod)
-        if callable(getattr(mod, method_name))
-        and len(method_name) > 15
-        and method_name[-15:] == "_inline_handler"
-    }
+    return _introspect(mod, "_inline_handler", "is_inline_handler")
 
 
 def get_callback_handlers(mod):
     """Introspect the module to get its callback handlers"""
-    return {
-        method_name[:-17]: getattr(mod, method_name)
-        for method_name in dir(mod)
-        if callable(getattr(mod, method_name))
-        and len(method_name) > 17
-        and method_name[-17:] == "_callback_handler"
-    }
+    return _introspect(mod, "_callback_handler", "is_callback_handler")
 
 
 class Modules:
@@ -276,17 +306,24 @@ class Modules:
         spec.loader.exec_module(module)
         ret = None
 
-        for key, value in vars(module).items():
-            if key.endswith("Mod") and issubclass(value, Module):
-                ret = value()
-
-        if hasattr(module, "__version__"):
-            ret.__version__ = module.__version__
+        candidates = [
+            value
+            for value in vars(module).values()
+            if inspect.isclass(value)
+            and issubclass(value, Module)
+            and value is not Module
+        ]
+        if candidates:
+            suffixed = [c for c in candidates if c.__name__.endswith("Mod")]
+            ret = (suffixed[0] if suffixed else candidates[0])()
 
         if ret is None:
             ret = module.register(module_name)
             if not isinstance(ret, Module):
                 raise TypeError(f"Instance is not a Module, it is {type(ret)}")
+
+        if hasattr(module, "__version__"):
+            ret.__version__ = module.__version__
 
         self.complete_registration(ret)
         ret.__origin__ = origin
@@ -326,20 +363,36 @@ class Modules:
             self.commands.update({command.lower(): instance.commands[command]})
 
     def register_watcher(self, instance):
-        """Register watcher from instance"""
-        try:
-            if instance.watcher:
-                for watcher in self.watchers:
-                    if (
-                        hasattr(watcher, "__self__")
-                        and watcher.__self__.__class__.__name__
-                        == instance.watcher.__self__.__class__.__name__
-                    ):
-                        logging.debug("Removing watcher for update %r", watcher)
-                        self.watchers.remove(watcher)
-                self.watchers += [instance.watcher]
-        except AttributeError:
-            pass
+        """Register watcher(s) from instance"""
+        new_watchers = []
+        if getattr(instance, "watcher", None):
+            new_watchers.append(instance.watcher)
+
+        for method_name in dir(instance):
+            try:
+                method = getattr(instance, method_name)
+            except Exception:
+                continue
+            if (
+                method_name != "watcher"
+                and callable(method)
+                and getattr(method, "is_watcher", False)
+            ):
+                new_watchers.append(method)
+
+        if not new_watchers:
+            return
+
+        cls_name = instance.__class__.__name__
+        self.watchers = [
+            w
+            for w in self.watchers
+            if not (
+                hasattr(w, "__self__")
+                and w.__self__.__class__.__name__ == cls_name
+            )
+        ]
+        self.watchers += new_watchers
 
     def complete_registration(self, instance):
         """Complete registration of instance"""
@@ -422,6 +475,11 @@ class Modules:
         """Send all data to all modules"""
         self.client = client
 
+        try:
+            self._tg_id = (await client.get_me()).id
+        except Exception:
+            self._tg_id = 0
+
         # Register inline manager anyway, so the modules
         # can access its `init_complete`
         inline_manager = inline.InlineManager(client, db, self)
@@ -454,9 +512,13 @@ class Modules:
     async def send_ready_one(self, mod, client, db, allclients):
         mod.allclients = allclients
         mod.inline = self.inline
+        heroku_compat.inject(mod, client, db, getattr(self, "_tg_id", 0), self)
 
         try:
-            await mod.client_ready(client, db)
+            if not inspect.signature(mod.client_ready).parameters:
+                await mod.client_ready()
+            else:
+                await mod.client_ready(client, db)
         except ModUnload:
             logging.debug(f"Unloading module {mod}, because it raised ModUnload")
             self.modules.remove(mod)
