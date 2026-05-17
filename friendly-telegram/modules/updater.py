@@ -108,9 +108,23 @@ class UpdaterMod(loader.Module):
     def __init__(self):
         self.config = loader.ModuleConfig(
             "GIT_ORIGIN_URL",
-            "https://github.com/GeekTG/Friendly-Telegram",
+            "https://github.com/lovesjaba-spec/Friendly-Telegram",
             lambda m: self.strings("origin_cfg_doc", m),
         )
+
+    def _updater_remote(self, repo):
+        url = self.config["GIT_ORIGIN_URL"]
+
+        for remote in repo.remotes:
+            if url in set(remote.urls):
+                return remote
+
+        if "ftg_origin" in {remote.name for remote in repo.remotes}:
+            remote = repo.remote("ftg_origin")
+            remote.set_url(url)
+            return remote
+
+        return repo.create_remote("ftg_origin", url)
 
     @loader.owner
     async def restartcmd(self, message: Message) -> None:
@@ -176,8 +190,8 @@ class UpdaterMod(loader.Module):
     async def download_common(self):
         try:
             repo = Repo(os.path.dirname(utils.get_base_dir()))
-            origin = repo.remote("origin")
-            r = origin.pull()
+            remote = self._updater_remote(repo)
+            r = remote.pull(repo.active_branch.name)
             new_commit = repo.head.commit
             for info in r:
                 if info.old_commit:
@@ -221,10 +235,10 @@ class UpdaterMod(loader.Module):
     async def get_changelog(self):
         try:
             repo = Repo(os.path.dirname(utils.get_base_dir()))
-            origin = repo.remote("origin")
-            await utils.run_sync(origin.fetch)
+            remote = self._updater_remote(repo)
+            await utils.run_sync(remote.fetch)
             branch = repo.active_branch.name
-            return list(repo.iter_commits(f"HEAD..origin/{branch}"))
+            return list(repo.iter_commits(f"HEAD..{remote.name}/{branch}"))
         except Exception:
             logger.exception("Update check failed")
             return None
