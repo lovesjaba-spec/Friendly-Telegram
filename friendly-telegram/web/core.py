@@ -69,5 +69,11 @@ class Web(initial_setup.Web, root.Web):
     @staticmethod
     async def favicon(request):
         return web.Response(
-            status=301, headers={"Location": "https://i.imgur.com/xEOkgCj.jpeg"}
+            status=301,
+            headers={
+                "Location": (
+                    "https://github.com/lovesjaba-spec/Friendly-Telegram"
+                    "/raw/master/friendly-telegram/bot_avatar.png"
+                )
+            },
         )

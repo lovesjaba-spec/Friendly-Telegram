@@ -1,568 +1,235 @@
-<!--
-    █ █ ▀ █▄▀ ▄▀█ █▀█ ▀    ▄▀█ ▀█▀ ▄▀█ █▀▄▀█ ▄▀█
-    █▀█ █ █ █ █▀█ █▀▄ █ ▄  █▀█  █  █▀█ █ ▀ █ █▀█
-
-    Copyright 2022 t.me/hikariatama
-    Licensed under the GNU GPLv3
--->
-
+{#
+    GeekTG Friendly-Telegram — initial setup
+    Licensed under the GNU AGPLv3 <https://www.gnu.org/licenses/>.
+#}
 {% extends "base.jinja2" %}
+{% block title %}GeekTG · Setup{% endblock %}
 
 {% block head %}
-  <script src="https://cdn.jsdelivr.net/npm/scrypt-async@2.0.1/scrypt-async.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-  <script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Josefin+Sans&family=Open+Sans:wght@300&display=swap');
-    @import url('https://fonts.googleapis.com/css2?family=Hubballi&display=swap');
-    .button {
-      border-radius: 5px;
-      padding: 10px 20px;
-      border: none;
-      color: #eee;
-      margin: 5px 0;
-      background: transparent;
-      border: 2px solid #aaa;
-      cursor: pointer;
-      transition: box-shadow .2s ease;
-      user-select: none;
-    }
-
-
-
-    .button:hover {
-      box-shadow: inset 5px 5px 3px rgba(255, 255, 255, .1),
-                  inset -5px -5px 3px rgba(255, 255, 255, .1);
-    }
-
-    .signin_block {
-      display: inline-block;
-    }
-
-    .signin_block ul {
-      margin: 0;
-      list-style: none;
-      padding: 0;
-    }
-
-    .signin_block li {
-      width: 100%;
-    }
-
-    .signin_block h1 {
-      margin: 0;
-      color: #eee;
-      font-size: 22px;
-      padding: 10px;
-      font-family: "Open Sans";
-    }
-
-    .hamburger, .menu {
-      display: none;
-    }
-  </style>
-
-  <style type="text/css">
-    body, html {
-      width: 100%;
-      height: 100%;
-      margin: 0;
-      padding: 0;
-    }
-
-    body {
-      /*background: linear-gradient(-45deg, #007700 0%, #004400 100%);*/
-      transition: all 2s ease;
-      background: #16181d;
-    }
-
-    #sky {
-      width: 100vw;
-      height: 100vh;
-      position: fixed;
-      overflow: hidden;
-      margin: 0;
-      padding: 0;
-    }
-
-    #shootingstars {
-      margin: 0;
-      padding: 0;
-      width: 150vh;
-      height: 100vw;
-      position: fixed;
-      overflow: hidden;
-      transform: translatex(calc(50vw - 50%)) translatey(calc(50vh - 50%))
-        rotate(120deg);
-    }
-
-    .wish {
-      height: 2px;
-      top: 300px;
-      width: 100px;
-      margin: 0;
-      opacity: 0;
-      padding: 0;
-      background-color: white;
-      position: absolute;
-      background: linear-gradient(-45deg, white, rgba(0, 0, 255, 0));
-      filter: drop-shadow(0 0 6px white);
-      overflow: hidden;
-    }
-
-    .title {
-      font-size: 50px;
-      font-family: Hubballi;
-      text-align: center;
-      color: #fff;
-      width: 100%;
-      z-index: 2;
-      position: relative;
-      height: 50px;
-      line-height: 50px;
-    }
-
-    .description {
-      font-size: 24px;
-      color: #eee;
-      text-align: center;
-      width: 100%;
-      z-index: 2;
-      position: relative;
-      padding-top: 20px;
-      line-height: 1.3;
-      font-family: Hubballi;
-    }
-
-    .wrapper {
-      width: 100%;
-      height: 100%;
-      position: absolute;
-      justify-content: center;
-      align-items: center;
-      display: flex;
-      flex-direction: column;
-    }
-
-    #root {
-      position: absolute;
-      top:  0;
-      right: 0;
-      left: 0;
-      bottom: 0;
-      margin: auto;
-    }
-
-    .darken {
-      position: absolute;
-      width: 100%;
-      height: 100%;
-      z-index: 1;
-      background: rgba(0, 0, 0, .1);
-      top: 0;
-      bottom: 0;
-      right: 0;
-      left: 0;
-      margin: auto;
-    }
-
-    .main_content {
-      display: none;
-    }
-
-    .center {
-      justify-content: center;
-      align-items: center;
-      display: flex;
-      position: relative;
-      z-index: 2;
-      margin-top: 20px;
-    }
-
-    .blur {
-      padding: 4rem 8rem;
-      border-radius: 0.375rem;
-      background-color: rgba(22, 24, 29, .5);
-      border: 1px solid rgba(42, 46, 55, 1);
-      backdrop-filter: blur(6px);
-      position: relative;
-      z-index: 99;
-    }
-
-    .bg {
-      background: url(https://github.com/hikariatama/assets/raw/master/bg.png);
-      background-repeat: no-repeat;
-      background-size: contain;
-      width: 80vw;
-      height: 60vh;
-      position: absolute;
-      z-index: 1;
-      background-position: center;
-      display: none;
-      filter: hue-rotate(155deg);
-      transition: .3s;
-      animation: floating 5s infinite ease-in-out;
-    }
-
-    @keyframes floating {
-      from {
-        transform: translateY(-10px);
-      }
-
-      50% {
-        transform: translateY(10px);
-      }
-
-      to {
-        transform: translateY(-10px);
-      }
-    }
-
-    @media screen and (max-width: 736px) {
-      .blur {
-        width: 100%;
-        height: 100%;
-        padding: 1.5rem;
-        box-sizing: border-box;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-      }
-
-      .bg {
-        width: 100vh;
-        height: 100vw;
-        transform: rotate(90deg);
-      }
-    }
-
-    input {
-      background: transparent;
-      border: 1px solid #eee;
-      outline: none;
-      padding: 10px 15px;
-      border-radius: 10px;
-      color: #fff;
-      text-align: center;
-    }
-    label {
-      margin: 0 10px;
-      color: #eee;
-      user-select: none;
-    }
-
-    #continue_btn {
-      padding: 10px 15px;
-      background: #0d47a1;
-      border-radius: 10px;
-      user-select: none;
-      color: #fff;
-      cursor: pointer;
-      text-align: center;
-      border: 1px solid #1a237e;
-      margin: 10px 0;
-      transition: all .3s ease;
-      margin-left: 5px;
-    }
-
-    #continue_btn:hover {
-      background-color: #1a237e;
-    }
-
-    #continue_btn:active {
-      background-color: #311b92;
-    }
-
-    #continue_btn.error {
-      background-color: #c62828;
-      transition: all .3s ease;
-    }
-
-    #continue_btn, #block_api_id, #block_api_hash, #block_phone, #block_2fa {
-      display: none;
-    }
-
-    .red_state {
-      filter: hue-rotate(0deg);
-    }
-
-    .blue_state {
-      filter: hue-rotate(203deg);
-    }
-  </style>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
 {% endblock %}
 
-{% block content %}
-{% endblock %}
-
-{% block after %}
-<div class="wrapper">
-  <div class="bg invert">
-    
-  </div>
-  <div class="blur">
-    <div class="title">GeekTG</div>
-    <div class="description">Ultimate userbot.<br>Best <span style="color:#28a0dc">Telegram</span> userbot.<br><b>Ever</b>.</div>
-    <div class="center">
-      <div class="button" id="get_started">Get started</div>
-      <span id="block_api_id">
-        <label class="api_id" for="api_id">API ID: </label>
-        <input class="api_id" id="api_id" placeholder="2020" style="width: 4em;">
-      </span>
-      <span id="block_api_hash">
-        <label class="api_hash" for="api_hash">API HASH: </label>
-        <input class="api_hash" id="api_hash" placeholder="w7i07l02i6hymgg03ncq6esmr3t4c9kl" style="width: 24em;">
-      </span>
-      <span id="block_phone">
-        <label class="phone" for="phone">Phone: </label>
-        <input class="phone" id="phone" placeholder="+79999999999" style="width: 12em;">
-      </span>
-      <span id="block_2fa">
-        <label class="_2fa" for="_2fa">2FA Password: </label>
-        <input class="_2fa" id="_2fa" placeholder="passw0rd" style="width: 12em;" type="password">
-      </span>
-      <div id="continue_btn">Continue</div>
+{% block body %}
+<div class="card">
+  <div class="brand">
+    <img src="https://github.com/lovesjaba-spec/Friendly-Telegram/raw/master/friendly-telegram/bot_avatar.png" alt="">
+    <div>
+      <h1>GeekTG</h1>
+      <p>Friendly-Telegram setup</p>
     </div>
   </div>
-  <div id="root">
 
-  
+  <div id="s-api" class="screen hidden">
+    <div class="step-title">Telegram API</div>
+    <div class="step-sub">
+      Create an application at
+      <a href="https://my.telegram.org/apps" target="_blank" rel="noopener">my.telegram.org</a>
+      and paste the credentials below.
+    </div>
+    <label class="fld" for="api_id">API ID</label>
+    <input class="inp" id="api_id" placeholder="2020" inputmode="numeric" autocomplete="off">
+    <label class="fld" for="api_hash">API hash</label>
+    <input class="inp" id="api_hash" placeholder="w7i07l02i6hymgg03ncq6esmr3t4c9kl" autocomplete="off">
+    <button class="btn" id="api_next">Continue</button>
   </div>
+
+  <div id="s-method" class="screen hidden">
+    <div class="step-title">Sign in</div>
+    <div class="step-sub">Choose how to log into your Telegram account.</div>
+    <div class="choice">
+      <button type="button" id="m-qr">
+        <span class="ic">▦</span>
+        <span><b>QR code</b><small>Scan with Telegram — fastest</small></span>
+      </button>
+      <button type="button" id="m-phone">
+        <span class="ic">✆</span>
+        <span><b>Phone number</b><small>Get a login code in Telegram</small></span>
+      </button>
+    </div>
+  </div>
+
+  <div id="s-qr" class="screen hidden">
+    <div class="step-title">Scan QR code</div>
+    <ol class="steps">
+      <li>Open Telegram on your phone</li>
+      <li>Settings → Devices → Link Desktop Device</li>
+      <li>Point the camera at this code</li>
+    </ol>
+    <div class="qr-wrap">
+      <div class="qr-box"><canvas id="qr"></canvas></div>
+      <div class="status"><span class="dot"></span><span id="qr-status">Waiting for scan…</span></div>
+    </div>
+    <button type="button" class="back" data-to="s-method">← Other methods</button>
+  </div>
+
+  <div id="s-phone" class="screen hidden">
+    <div class="step-title">Phone number</div>
+    <div class="step-sub">A one-time login code will be sent to your Telegram.</div>
+    <label class="fld" for="phone">Phone number</label>
+    <input class="inp" id="phone" placeholder="+79991234567" inputmode="tel" autocomplete="off">
+    <button class="btn" id="phone_next">Send code</button>
+    <button type="button" class="back" data-to="s-method">← Other methods</button>
+  </div>
+
+  <div class="foot">GeekTG · Friendly-Telegram · AGPLv3</div>
 </div>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-<script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<script type="text/javascript">
-  $(document).ready(function() {
-      $('.bg').hide().delay(2000).fadeIn(500);
-  });
-  $("#get_started").click(() => {
-    $("#get_started").fadeOut(500, () => {
-      cnt_btn.setAttribute('current-step', 'api_id');
-      $("#block_api_id").hide().fadeIn(500);
-      $("#continue_btn").hide().fadeIn(500);
+
+<script>
+(function(){
+  var apiDone = {{ 'true' if api_done else 'false' }};
+  var screens = ['s-api','s-method','s-qr','s-phone'];
+  var qrTimer = null, qrUrl = '', lastCode = '';
+  var dark = '#15171f', light = '#e9eaf0';
+
+  function show(id){
+    screens.forEach(function(s){
+      document.getElementById(s).classList.toggle('hidden', s !== id);
     });
+    if(id !== 's-qr'){ stopQr(); }
+  }
+  function err(t){ Swal.fire({icon:'error',title:t,background:dark,color:light}); }
+  function ok(t){
+    return Swal.fire({icon:'success',title:t,timer:1100,showConfirmButton:false,background:dark,color:light});
+  }
+  function finish(){
+    fetch('/finishLogin',{method:'POST',body:'',credentials:'include'})
+      .then(function(r){
+        if(!r.ok){ err('Login confirmation failed'); return; }
+        ok('Signed in!').then(function(){ location.reload(); });
+      })
+      .catch(function(){ err('Login confirmation failed'); });
+  }
+
+  document.querySelectorAll('.back').forEach(function(b){
+    b.onclick = function(){ show(b.dataset.to); };
   });
 
-  function isInt(value) {
-    var x = parseFloat(value);
-    return !isNaN(value) && (x | 0) === x;
-  }
-
-  function isValidPhone(p) {
-    var phoneRe = /^[+]?\d{11,13}$/;
-    return phoneRe.test(p);
-  }
-
-  var _api_id = "", _api_hash = "", _phone = "", _2fa_pass = "", _tg_pass = "";
-
-  const cnt_btn = document.querySelector('#continue_btn');
-  cnt_btn.onclick = (e) => {
-    if(cnt_btn.disabled) return;
-
-    let step = cnt_btn.getAttribute('current-step');
-    if(step == "api_id") {
-      let api_id = document.querySelector('#api_id').value;
-      if(api_id.length < 4 || !isInt(api_id)) {
-        $(".bg").addClass("red_state");
-        cnt_btn.disabled = true;
-        setTimeout(() => {
-          cnt_btn.disabled = false;
-          $(".bg").removeClass("red_state");
-        }, 1000);
-        return;
-      }
-
-      _api_id = parseInt(api_id);
-      cnt_btn.setAttribute('current-step', 'api_hash');
-      $("#block_api_id").fadeOut(() => {
-        $("#block_api_hash").hide().fadeIn();
-      });
-    } else if (step == "api_hash") {
-      let api_hash = document.querySelector('#api_hash').value;
-      if(api_hash.length != 32) {
-        $(".bg").addClass("red_state");
-        cnt_btn.disabled = true;
-        setTimeout(() => {
-          cnt_btn.disabled = false;
-          $(".bg").removeClass("red_state");
-        }, 1000);
-        return;
-      }
-
-      _api_hash = api_hash;
-      fetch("/setApi", {
-        method: "PUT",
-        body: _api_hash + _api_id,
-        credentials: "include"
+  document.getElementById('api_next').onclick = function(){
+    var id = document.getElementById('api_id').value.trim();
+    var hash = document.getElementById('api_hash').value.trim();
+    if(!/^\d{4,}$/.test(id)){ err('API ID looks invalid'); return; }
+    if(hash.length !== 32){ err('API hash must be 32 characters'); return; }
+    var btn = this; btn.disabled = true;
+    fetch('/setApi',{method:'PUT',body:hash+id,credentials:'include'})
+      .then(function(r){
+        btn.disabled = false;
+        if(!r.ok){ err('Could not save credentials'); return; }
+        show('s-method');
       })
-      .then(function (response) {
-        if (!response.ok) {
-          Swal.fire({
-            'icon': 'error', 
-            'title': 'Error occured while saving credentials'
-          });
-        } else {
-          cnt_btn.setAttribute('current-step', 'phone');
-          $("#block_api_hash").fadeOut(() => {
-            $("#block_phone").hide().fadeIn();
-          });
-        }
-      })
-      .catch(function (response) {
-        Swal.fire({
-          'icon': 'error', 
-          'title': 'Error occured while saving credentials'
-        });
-      });
-    } else if (step == "phone" || step == "2fa") {
-      if(step == "phone") {
-        let phone = document.querySelector('#phone').value;
-        if(!isValidPhone(phone)) {
-          $(".bg").addClass("red_state");
-          cnt_btn.disabled = true;
-          setTimeout(() => {
-            cnt_btn.disabled = false;
-            $(".bg").removeClass("red_state");
-          }, 1000);
-          return;
-        }
+      .catch(function(){ btn.disabled = false; err('Could not save credentials'); });
+  };
 
-        _phone = phone;
-        fetch("/sendTgCode", {method: "POST", body: _phone, credentials: "include"})
-        .then(function (response) {
-          if (!response.ok) {
-            Swal.fire({
-              'icon': 'error', 
-              'title': 'Code send failed'
-            });
-          } else {
-            Swal.fire({
-              title: 'Enter received code',
-              input: 'text',
-              inputAttributes: {
-                autocapitalize: 'off'
-              },
-              showCancelButton: false,
-              confirmButtonText: 'Confirm',
-              showLoaderOnConfirm: true,
-              preConfirm: (login) => {
-                _tg_pass = login
-                return fetch("/tgCode", {method: "POST", body: _tg_pass + "\n" + _phone + "\n" + _2fa_pass})
-                  .then(function(response) {
-                    if (!response.ok) {
-                      console.log(response);
-                      if (response.status == 403) {
-                        Swal.showValidationMessage('Code is incorrect!');
-                      } else if (response.status == 401) {
-                        cnt_btn.setAttribute('current-step', '2fa');
-                        $("#block_phone").fadeOut(() => {
-                          $("#block_2fa").hide().fadeIn();
-                        });
-                      } else if (response.status == 404) {
-                        // Code expired, must re-send code request. Close dialog and wait for user action.
-                        Swal.showValidationMessage('Code is expired!');
-                      } else {
-                        Swal.showValidationMessage('Internal server error');
-                      }
-                    } else {
-                      return fetch("/finishLogin", {method: "POST", body: "", credentials: "include"})
-                            .then(function (response) {
-                              if (!response.ok) {
-                                Swal.fire({
-                                  'icon': 'error',
-                                  'text': 'Login confirmation error'
-                                })
-                              } else {
-                                Swal.fire({
-                                  'icon': 'success',
-                                  'text': 'Auth successful!',
-                                  'timer': 1000
-                                });
-                                setTimeout(() => {
-                                  window.location.reload();
-                                }, 1500);
-                              }
-                            })
-                            .catch(function (response) {
-                              Swal.fire({
-                                'icon': 'error',
-                                'text': 'Login confirmation error'
-                              })
-                            });
-                    }
-                  })
-                  .catch(error => {
-                    Swal.showValidationMessage(
-                      'Auth failed: ' + error.toString()
-                    )
-                  })
-              },
-              allowOutsideClick: () => !Swal.isLoading()
-            })
-          }
-        })
-        .catch(function (error) {
-          Swal.fire({
-            'icon': 'error', 
-            'title': 'Code send failed'
-          });
-        });
-      } else {
-        let _2fa = document.querySelector('#_2fa').value;
-        _2fa_pass = _2fa;
-        fetch("/tgCode", {method: "POST", body: _tg_pass + "\n" + _phone + "\n" + _2fa_pass})
-        .then(function(response) {
-          if (!response.ok) {
-            console.log(response);
-            if (response.status == 403) {
-              Swal.showValidationMessage('Code is incorrect!');
-            } else if (response.status == 401) {
-              cnt_btn.setAttribute('current-step', '2fa');
-              $("#block_phone").fadeOut(() => {
-                $("#block_2fa").hide().fadeIn();
-              });
-            } else if (response.status == 404) {
-              // Code expired, must re-send code request. Close dialog and wait for user action.
-              Swal.showValidationMessage('Code is expired!');
-            } else {
-              Swal.showValidationMessage('Internal server error');
-            }
-          } else {
-            fetch("/finishLogin", {method: "POST", body: '', credentials: "include"})
-            .then(function (response) {
-              if (!response.ok) {
-                Swal.fire({
-                  'icon': 'error',
-                  'text': 'Login confirmation error'
-                })
-              } else {
-                Swal.fire({
-                  'icon': 'success',
-                  'text': 'Auth successful!',
-                  'timer': 1000
-                });
-                setTimeout(() => {
-                  window.location.reload();
-                }, 1500);
-              }
-            })
-            .catch(function (response) {
-              Swal.fire({
-                'icon': 'error',
-                'text': 'Login confirmation error'
-              })
-            });
-          }
-        })
-        .catch(error => {
-          Swal.showValidationMessage(
-            'Auth failed: ' + error.toString()
-          )
-        })
-      }
-    }
+  document.getElementById('m-qr').onclick = function(){ show('s-qr'); startQr(); };
+  document.getElementById('m-phone').onclick = function(){ show('s-phone'); };
+
+  function drawQr(url){
+    if(url === qrUrl){ return; }
+    qrUrl = url;
+    QRCode.toCanvas(document.getElementById('qr'), url,
+      {width:232,margin:1,color:{dark:'#0c0d11',light:'#ffffff'}}, function(){});
   }
+  function stopQr(){ if(qrTimer){ clearInterval(qrTimer); qrTimer = null; } }
+
+  function startQr(){
+    document.getElementById('qr-status').textContent = 'Waiting for scan…';
+    fetch('/qrLogin',{method:'POST',credentials:'include'})
+      .then(function(r){ if(!r.ok){ throw 0; } return r.json(); })
+      .then(function(d){ drawQr(d.url); stopQr(); qrTimer = setInterval(pollQr,2200); })
+      .catch(function(){ err('Could not start QR login'); });
+  }
+  function pollQr(){
+    fetch('/qrStatus',{credentials:'include'})
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        if(d.status === 'pending'){ if(d.url){ drawQr(d.url); } }
+        else if(d.status === '2fa'){ stopQr(); ask2fa(); }
+        else if(d.status === 'done'){
+          stopQr();
+          document.getElementById('qr-status').textContent = 'Authorized';
+          finish();
+        }
+        else if(d.status === 'error'){ stopQr(); err('QR login failed — try another method'); }
+      })
+      .catch(function(){});
+  }
+  function ask2fa(){
+    Swal.fire({
+      title:'Two-step verification',
+      input:'password',
+      inputPlaceholder:'Your 2FA password',
+      background:dark,color:light,
+      confirmButtonText:'Confirm',showLoaderOnConfirm:true,
+      allowOutsideClick:function(){ return !Swal.isLoading(); },
+      preConfirm:function(pw){
+        return fetch('/qr2fa',{method:'POST',body:pw||'',credentials:'include'})
+          .then(function(r){
+            if(r.status === 403){ Swal.showValidationMessage('Wrong password'); return; }
+            if(!r.ok){ Swal.showValidationMessage('Server error'); return; }
+            return true;
+          })
+          .catch(function(){ Swal.showValidationMessage('Network error'); });
+      }
+    }).then(function(res){ if(res.value){ finish(); } });
+  }
+
+  document.getElementById('phone_next').onclick = function(){
+    var phone = document.getElementById('phone').value.trim();
+    if(!/^[+]?\d{10,15}$/.test(phone)){ err('Phone number looks invalid'); return; }
+    var btn = this; btn.disabled = true;
+    fetch('/sendTgCode',{method:'POST',body:phone,credentials:'include'})
+      .then(function(r){
+        btn.disabled = false;
+        if(!r.ok){ err('Could not send the code'); return; }
+        askCode(phone);
+      })
+      .catch(function(){ btn.disabled = false; err('Could not send the code'); });
+  };
+  function askCode(phone){
+    Swal.fire({
+      title:'Enter login code',
+      input:'text',
+      inputPlaceholder:'12345',
+      background:dark,color:light,
+      confirmButtonText:'Confirm',showLoaderOnConfirm:true,
+      allowOutsideClick:function(){ return !Swal.isLoading(); },
+      preConfirm:function(code){
+        lastCode = code || '';
+        return fetch('/tgCode',{method:'POST',body:lastCode+'\n'+phone+'\n'})
+          .then(function(r){
+            if(r.ok){ return 'done'; }
+            if(r.status === 401){ return '2fa'; }
+            if(r.status === 403){ Swal.showValidationMessage('Code is incorrect'); return; }
+            if(r.status === 404){ Swal.showValidationMessage('Code has expired'); return; }
+            Swal.showValidationMessage('Server error');
+          })
+          .catch(function(){ Swal.showValidationMessage('Network error'); });
+      }
+    }).then(function(res){
+      if(res.value === 'done'){ finish(); }
+      else if(res.value === '2fa'){ askPhone2fa(phone); }
+    });
+  }
+  function askPhone2fa(phone){
+    Swal.fire({
+      title:'Two-step verification',
+      input:'password',
+      inputPlaceholder:'Your 2FA password',
+      background:dark,color:light,
+      confirmButtonText:'Confirm',showLoaderOnConfirm:true,
+      allowOutsideClick:function(){ return !Swal.isLoading(); },
+      preConfirm:function(pw){
+        return fetch('/tgCode',{method:'POST',body:lastCode+'\n'+phone+'\n'+(pw||'')})
+          .then(function(r){
+            if(r.ok){ return true; }
+            if(r.status === 403){ Swal.showValidationMessage('Wrong password'); return; }
+            Swal.showValidationMessage('Server error');
+          })
+          .catch(function(){ Swal.showValidationMessage('Network error'); });
+      }
+    }).then(function(res){ if(res.value){ finish(); } });
+  }
+
+  show(apiDone ? 's-method' : 's-api');
+})();
 </script>
 {% endblock %}
-

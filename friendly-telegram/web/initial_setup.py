@@ -50,11 +50,18 @@ class Web:
         self.app.router.add_post("/sendTgCode", self.send_tg_code)
         self.app.router.add_post("/tgCode", self.tg_code)
         self.app.router.add_post("/finishLogin", self.finish_login)
+        self.app.router.add_post("/qrLogin", self.qr_login)
+        self.app.router.add_get("/qrStatus", self.qr_status)
+        self.app.router.add_post("/qr2fa", self.qr_2fa)
         self.api_set = asyncio.Event()
         self.sign_in_clients = {}
         self.clients = []
         self.clients_set = asyncio.Event()
         self.root_redirected = asyncio.Event()
+        self.qr_client = None
+        self._qr = None
+        self._qr_state = "idle"
+        self._qr_running = False
 
     async def root(self, request):
         try:
@@ -177,4 +184,68 @@ class Web:
         if not self.clients:
             return web.Response(status=400)
         self.clients_set.set()
+        return web.Response()
+
+    async def qr_login(self, request):
+        if self.api_token is None:
+            return web.Response(status=400)
+        if self.qr_client is None:
+            self.qr_client = telethon.TelegramClient(
+                telethon.sessions.MemorySession(),
+                self.api_token.ID,
+                self.api_token.HASH,
+                connection=self.connection,
+                proxy=self.proxy,
+                connection_retries=None,
+            )
+            await self.qr_client.connect()
+        self._qr = await self.qr_client.qr_login()
+        self._qr_state = "pending"
+        if not self._qr_running:
+            self._qr_running = True
+            asyncio.ensure_future(self._qr_worker())
+        return web.json_response({"url": self._qr.url})
+
+    async def _qr_worker(self):
+        try:
+            while self._qr_state == "pending":
+                try:
+                    user = await self._qr.wait(timeout=30)
+                except asyncio.TimeoutError:
+                    try:
+                        await self._qr.recreate()
+                    except Exception:
+                        self._qr_state = "error"
+                    continue
+                except telethon.errors.SessionPasswordNeededError:
+                    self._qr_state = "2fa"
+                    return
+                except Exception:
+                    self._qr_state = "error"
+                    return
+                self.qr_client.phone = f"+{user.phone}"
+                self.clients.append(self.qr_client)
+                self._qr_state = "done"
+                return
+        finally:
+            self._qr_running = False
+
+    async def qr_status(self, request):
+        if self._qr is None:
+            return web.json_response({"status": "idle"})
+        return web.json_response({"status": self._qr_state, "url": self._qr.url})
+
+    async def qr_2fa(self, request):
+        if self.qr_client is None or self._qr_state != "2fa":
+            return web.Response(status=400)
+        password = await request.text()
+        try:
+            user = await self.qr_client.sign_in(password=password)
+        except telethon.errors.PasswordHashInvalidError:
+            return web.Response(status=403)
+        except telethon.errors.FloodWaitError:
+            return web.Response(status=421)
+        self.qr_client.phone = f"+{user.phone}"
+        self.clients.append(self.qr_client)
+        self._qr_state = "done"
         return web.Response()

@@ -7,18 +7,22 @@
 """
 
 import aiohttp_jinja2
+from aiohttp import web
 
 
 class Web:
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.app.router.add_get("/", self.root)
-        self.app.router.add_get("/is_restart_complete", lambda r: True)
+        self.app.router.add_get("/is_restart_complete", self.is_restart_complete)
         self.app.router.add_post("/restart", self.restart)
 
     @aiohttp_jinja2.template("root.jinja2")
     async def root(self, request):
         return {}
+
+    async def is_restart_complete(self, request):
+        return web.json_response({"status": "ok"})
 
     async def restart(self, request):
         cl = self.client_data[list(self.client_data.keys())[0]]
