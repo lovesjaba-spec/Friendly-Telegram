@@ -1339,6 +1339,12 @@ class InlineManager:
         if reply_markup is None:
             reply_markup = []
 
+        if not reply_markup:
+            # A keyboard-less inline message gets no inline_message_id from
+            # Telegram, so it could not be edited later. Attach an invisible
+            # placeholder button (soft hyphen) to force an editable message.
+            reply_markup = [[{"text": "­", "data": "­"}]]
+
         if always_allow is None:
             always_allow = []
 
