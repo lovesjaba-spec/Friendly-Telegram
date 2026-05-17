@@ -280,6 +280,19 @@ def relocate_entities(entities, offset, text=None):
     return entities
 
 
+class AnswerResult(list):
+    """List of sent messages that also delegates attribute access to the first.
+
+    GeekTG modules index it (`(await answer(...))[0]`); Heroku modules use the
+    result directly as a `Message` — both work.
+    """
+
+    def __getattr__(self, name):
+        if not self:
+            raise AttributeError(name)
+        return getattr(self[0], name)
+
+
 async def answer(message, response, **kwargs):
     """Use this to give the response to a command"""
     if isinstance(message, list):
@@ -329,7 +342,7 @@ async def answer(message, response, **kwargs):
             if message.out:
                 await message.delete()
 
-            return ret
+            return AnswerResult(ret)
 
         ret = [
             await (message.edit if edit else message.respond)(
@@ -371,7 +384,7 @@ async def answer(message, response, **kwargs):
     if delete_job:
         await delete_job
 
-    return ret
+    return AnswerResult(ret)
 
 
 async def get_target(message, arg_no=0):
