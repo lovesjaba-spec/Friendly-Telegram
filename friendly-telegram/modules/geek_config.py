@@ -183,9 +183,12 @@ class GeekConfigMod(loader.Module):
                     choices = validator.args[0]
 
                 if choices is not None:
+                    current = str(module.config[config_opt])
                     choice_btns = [
                         {
-                            "text": str(choice),
+                            "text": (
+                                f"{'☑️' if str(choice) == current else '🔘'} {choice}"
+                            ),
                             "callback": self.inline__set_bool,
                             "args": (
                                 mod,
@@ -196,7 +199,7 @@ class GeekConfigMod(loader.Module):
                         }
                         for choice in choices
                     ]
-                    markup += list(chunks(choice_btns, 3))
+                    markup += list(chunks(choice_btns, 2))
                 elif isinstance(module.config.getdef(config_opt), bool):
                     markup += [
                         [
