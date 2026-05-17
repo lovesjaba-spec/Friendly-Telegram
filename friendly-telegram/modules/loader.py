@@ -41,7 +41,11 @@ VALID_PIP_PACKAGES = re.compile(
     r"^\s*# requires:(?: ?)((?:{url} )*(?:{url}))\s*$".format(url=VALID_URL),
     re.MULTILINE,
 )
-USER_INSTALL = "PIP_TARGET" not in os.environ and "VIRTUAL_ENV" not in os.environ
+USER_INSTALL = (
+    "PIP_TARGET" not in os.environ
+    and "VIRTUAL_ENV" not in os.environ
+    and sys.prefix == sys.base_prefix
+)
 GIT_REGEX = re.compile(
     r"^https?://github\.com((?:/[a-z0-9-]+){2})(?:/tree/([a-z0-9-]+)((?:/[a-z0-9-]+)*))?/?$",
     flags=re.IGNORECASE,

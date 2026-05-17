@@ -216,6 +216,7 @@ class UpdaterMod(loader.Module):
     def req_common() -> None:
         # Now we have downloaded new code, install requirements
         logger.debug("Installing new requirements...")
+        in_venv = sys.prefix != sys.base_prefix
         try:
             subprocess.run(  # skipcq: PYL-W1510
                 [
@@ -227,7 +228,7 @@ class UpdaterMod(loader.Module):
                     os.path.join(
                         os.path.dirname(utils.get_base_dir()), "requirements.txt"
                     ),
-                    "--user",
+                    *([] if in_venv else ["--user"]),
                 ]
             )
 
