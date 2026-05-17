@@ -9,7 +9,9 @@
 # scope: inline
 
 from .. import loader, main, utils
+import io
 import logging
+import requests
 import aiogram
 import git
 from aiogram.types.input_message_content import InputTextMessageContent
@@ -162,4 +164,30 @@ class GeekInfoMod(loader.Module):
                 photo=self.config["photo_url"],
             )
 
-        await utils.answer(message, self.build_message())
+        caption = self.build_message()
+        media = self.config["photo_url"]
+
+        if not media:
+            await utils.answer(message, caption)
+            return
+
+        try:
+            response = await utils.run_sync(requests.get, media)
+            response.raise_for_status()
+        except Exception:
+            await utils.answer(message, caption)
+            return
+
+        file = io.BytesIO(response.content)
+        file.name = media.split("?")[0].split("/")[-1] or "info.png"
+
+        await message.client.send_file(
+            message.peer_id,
+            file,
+            caption=caption,
+            parse_mode="html",
+            reply_to=getattr(message, "reply_to_msg_id", None),
+        )
+
+        if message.out:
+            await message.delete()
