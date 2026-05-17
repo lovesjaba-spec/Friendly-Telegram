@@ -316,7 +316,8 @@ class SuperList(list):
 def main():  # noqa: C901
     """Main entrypoint"""
     arguments = parse_arguments()
-    loop = asyncio.get_event_loop()
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
 
     clients = SuperList()
     phones, authtoken = get_phones(arguments)
