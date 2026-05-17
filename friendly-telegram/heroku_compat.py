@@ -398,6 +398,8 @@ _TYPE_STUBS = {}
 
 
 def __getattr__(name):
+    if name.startswith("__") and name.endswith("__"):
+        raise AttributeError(name)
     if name in _TYPE_STUBS:
         return _TYPE_STUBS[name]
     logger.warning("heroku_compat: substituting stub for unknown Heroku name %r", name)
