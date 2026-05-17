@@ -170,7 +170,34 @@ class GeekConfigMod(loader.Module):
                     ]
                 ]
 
-                if isinstance(module.config.getdef(config_opt), bool):
+                validator = getattr(module.config, "get_validator", lambda _: None)(
+                    config_opt
+                )
+                choices = None
+                if (
+                    validator is not None
+                    and getattr(validator, "validator_name", None) == "Choice"
+                    and getattr(validator, "args", None)
+                    and isinstance(validator.args[0], (list, tuple))
+                ):
+                    choices = validator.args[0]
+
+                if choices is not None:
+                    choice_btns = [
+                        {
+                            "text": str(choice),
+                            "callback": self.inline__set_bool,
+                            "args": (
+                                mod,
+                                config_opt,
+                                str(choice),
+                                call.inline_message_id,
+                            ),
+                        }
+                        for choice in choices
+                    ]
+                    markup += list(chunks(choice_btns, 3))
+                elif isinstance(module.config.getdef(config_opt), bool):
                     markup += [
                         [
                             {

@@ -209,7 +209,8 @@ class ConfigValue:
 
 
 class _Validator:
-    def __init__(self, *args, **kwargs):
+    def __init__(self, name, *args, **kwargs):
+        self.validator_name = name
         self.args = args
         self.kwargs = kwargs
 
@@ -217,9 +218,17 @@ class _Validator:
         return value
 
 
+class _ValidatorFactory:
+    def __init__(self, name):
+        self._name = name
+
+    def __call__(self, *args, **kwargs):
+        return _Validator(self._name, *args, **kwargs)
+
+
 class _Validators:
     def __getattr__(self, name):
-        return _Validator
+        return _ValidatorFactory(name)
 
 
 validators = _Validators()

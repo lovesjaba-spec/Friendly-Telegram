@@ -149,6 +149,7 @@ class ModuleConfig(dict):
             values = [entry.value for entry in entries]
             defaults = [entry.default for entry in entries]
             docstrings = [entry.doc for entry in entries]
+            self._config_values = {entry.option: entry for entry in entries}
         else:
             keys = []
             values = []
@@ -162,10 +163,16 @@ class ModuleConfig(dict):
                     defaults.append(entry)
                 else:
                     docstrings.append(entry)
+            self._config_values = {}
 
         super().__init__(zip(keys, values))
         self._docstrings = dict(zip(keys, docstrings))
         self._defaults = dict(zip(keys, defaults))
+
+    def get_validator(self, key):
+        """Return the ConfigValue validator for a key, if any"""
+        entry = self._config_values.get(key)
+        return getattr(entry, "validator", None) if entry is not None else None
 
     def getdoc(self, key, message=None):
         """Get the documentation by key"""
