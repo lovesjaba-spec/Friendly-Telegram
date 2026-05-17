@@ -43,18 +43,18 @@ class CoreMod(loader.Module):
             "<b>to change it back</b>"
         ),
         "alias_created": "✅ <b>Alias created. Access it with</b> <code>{}</code>",
-        "aliases": "<b>Aliases:</b>\n",
+        "aliases": "ℹ️ <b>Aliases:</b>\n",
         "no_command": "🚫 <b>Command</b> <code>{}</code> <b>does not exist</b>",
         "alias_args": "🚫 <b>You must provide a command and the alias for it</b>",
         "delalias_args": "🚫 <b>You must provide the alias name</b>",
-        "alias_removed": "✅ <b>Alias</b> <code>{}</code> <b>removed.",
-        "no_alias": "<b>🚫 Alias</b> <code>{}</code> <b>does not exist</b>",
-        "no_pack": "<b>❓ What translation pack should be added?</b>",
-        "bad_pack": "<b>✅ Invalid translation pack specified</b>",
-        "trnsl_saved": "<b>✅ Translation pack added</b>",
-        "packs_cleared": "<b>✅ Translations cleared</b>",
-        "lang_set": "<b>✅ Language changed</b>",
-        "db_cleared": "<b>✅ Database cleared</b>",
+        "alias_removed": "✅ <b>Alias</b> <code>{}</code> <b>removed</b>",
+        "no_alias": "🚫 <b>Alias</b> <code>{}</code> <b>does not exist</b>",
+        "no_pack": "❓ <b>What translation pack should be added?</b>",
+        "bad_pack": "🚫 <b>Invalid translation pack specified</b>",
+        "trnsl_saved": "✅ <b>Translation pack added</b>",
+        "packs_cleared": "✅ <b>Translations cleared</b>",
+        "lang_set": "✅ <b>Language changed</b>",
+        "db_cleared": "✅ <b>Database cleared</b>",
         "geek": (
             "🕶 <b>Congrats! You are Geek!</b>\n\n"
             "<b>GeekTG version: {}.{}.{}</b>\n"
@@ -76,6 +76,91 @@ class CoreMod(loader.Module):
             "You receive fresh but untested updates. "
             "You <b><u>can't ask for help, only report bugs</u></b></i>"
         ),
+    }
+
+    strings_ru = {
+        "too_many_args": "🚫 <b>Слишком много аргументов</b>",
+        "blacklisted": "✅ <b>Чат {} добавлен в чёрный список юзербота</b>",
+        "unblacklisted": "✅ <b>Чат {} убран из чёрного списка юзербота</b>",
+        "user_blacklisted": "✅ <b>Пользователь {} добавлен в чёрный список юзербота</b>",
+        "user_unblacklisted": "✅ <b>Пользователь {} убран из чёрного списка юзербота</b>",
+        "what_prefix": "❓ <b>Какой префикс установить?</b>",
+        "prefix_incorrect": "🚫 <b>Префикс должен быть длиной в один символ</b>",
+        "prefix_set": (
+            "✅ <b>Префикс команд изменён.\n"
+            "Введите</b> <code>{newprefix}setprefix {oldprefix}</code>"
+            "<b>, чтобы вернуть обратно</b>"
+        ),
+        "alias_created": "✅ <b>Алиас создан. Вызывайте его через</b> <code>{}</code>",
+        "aliases": "ℹ️ <b>Алиасы:</b>\n",
+        "no_command": "🚫 <b>Команда</b> <code>{}</code> <b>не существует</b>",
+        "alias_args": "🚫 <b>Укажите команду и алиас для неё</b>",
+        "delalias_args": "🚫 <b>Укажите имя алиаса</b>",
+        "alias_removed": "✅ <b>Алиас</b> <code>{}</code> <b>удалён</b>",
+        "no_alias": "🚫 <b>Алиас</b> <code>{}</code> <b>не существует</b>",
+        "no_pack": "❓ <b>Какой языковой пак добавить?</b>",
+        "bad_pack": "🚫 <b>Указан неверный языковой пак</b>",
+        "trnsl_saved": "✅ <b>Языковой пак добавлен</b>",
+        "packs_cleared": "✅ <b>Языковые паки очищены</b>",
+        "lang_set": "✅ <b>Язык изменён</b>",
+        "db_cleared": "✅ <b>База данных очищена</b>",
+        "geek": (
+            "🕶 <b>Поздравляем! Вы Geek!</b>\n\n"
+            "<b>Версия GeekTG: {}.{}.{}</b>\n"
+            "<b>Ветка: master</b>"
+        ),
+        "geek_beta": (
+            "🕶 <b>Поздравляем! Вы Geek!</b>\n\n"
+            "<b>Версия GeekTG: {}.{}.{}beta</b>\n"
+            "<b>Ветка: beta</b>\n\n"
+            "<i>🔮 Вы используете нестабильную ветку (<b>beta</b>). "
+            "Вы получаете свежие, но непротестированные обновления. "
+            "Сообщайте о багах в @chat_ftg или @hikari_chat</i>"
+        ),
+        "geek_alpha": (
+            "🕶 <b>Поздравляем! Вы Geek!</b>\n\n"
+            "<b>Версия GeekTG: {}.{}.{}alpha</b>\n"
+            "<b>Ветка: alpha</b>\n\n"
+            "<i>🔮 Вы используете <b><u>очень</u></b> нестабильную ветку (<b>alpha</b>). "
+            "Вы получаете свежие, но непротестированные обновления. "
+            "Вы <b><u>не можете просить помощи, только сообщать о багах</u></b></i>"
+        ),
+        "_cls_doc": "Управление основными настройками юзербота",
+        "_cmd_doc_ftgver": "Узнать версию GeekTG",
+        "_cmd_doc_blacklist": (
+            ".blacklist [id]\n"
+            "Запретить боту работать где-либо"
+        ),
+        "_cmd_doc_unblacklist": (
+            ".unblacklist [id]\n"
+            "Снять запрет боту работать где-либо"
+        ),
+        "_cmd_doc_blacklistuser": (
+            ".blacklistuser [id]\n"
+            "Запретить этому пользователю выполнять любые команды"
+        ),
+        "_cmd_doc_unblacklistuser": (
+            ".unblacklistuser [id]\n"
+            "Разрешить этому пользователю выполнять доступные команды"
+        ),
+        "_cmd_doc_setprefix": "Устанавливает префикс команд",
+        "_cmd_doc_aliases": "Показать все ваши алиасы",
+        "_cmd_doc_addalias": "Создать алиас для команды",
+        "_cmd_doc_delalias": "Удалить алиас команды",
+        "_cmd_doc_addtrnsl": (
+            "Добавить языковой пак\n"
+            ".addtrnsl <пак>\n"
+            "После применения нужен перезапуск"
+        ),
+        "_cmd_doc_cleartrnsl": "Удалить все языковые паки",
+        "_cmd_doc_setlang": (
+            "Сменить предпочитаемый язык переводов\n"
+            "Укажите язык как список ISO 639-1 кодов через пробел\n"
+            "в порядке предпочтения\n"
+            "Без параметров все переводы отключаются\n"
+            "После применения нужен перезапуск"
+        ),
+        "_cmd_doc_cleardb": "Полностью очищает базу данных (сброс к заводским настройкам)",
     }
 
     async def client_ready(self, client, db):

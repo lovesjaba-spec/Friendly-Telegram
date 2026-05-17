@@ -52,6 +52,38 @@ class TestMod(loader.Module):
         "choose_loglevel": "💁‍♂️ <b>Choose log level</b>",
     }
 
+    strings_ru = {
+        "set_loglevel": "🚫 <b>Укажите уровень логов числом или строкой</b>",
+        "no_logs": "ℹ️ <b>У вас нет логов на уровне {}.</b>",
+        "logs_caption": "🗞 Логи GeekTG с уровнем {}",
+        "suspend_invalid_time": "🚫 <b>Неверное время для приостановки</b>",
+        "suspended": "🥶 <b>Бот приостановлен на</b> <code>{}</code> <b>секунд</b>",
+        "results_ping": "⏱ <b>Пинг:</b> <code>{}</code> <b>мс</b>",
+        "confidential": (
+            "⚠️ <b>Уровень логов </b><code>{}</code><b> "
+            "может раскрыть конфиденциальную информацию, будьте осторожны</b>"
+        ),
+        "confidential_text": (
+            "⚠️ <b>Уровень логов </b><code>{0}</code><b> "
+            "может раскрыть конфиденциальную информацию, будьте осторожны</b>\n"
+            "<b>Введите </b>"
+            "<code>.logs {0} force_insecure</code>"
+            "<b>, чтобы игнорировать предупреждение</b>"
+        ),
+        "choose_loglevel": "💁‍♂️ <b>Выберите уровень логов</b>",
+        "_cls_doc": "Операции для самотестирования юзербота",
+        "_cmd_doc_dump": "Используйте в ответ на сообщение, чтобы получить его дамп",
+        "_cmd_doc_logs": (
+            "<уровень> - Выгружает логи. "
+            "Уровни ниже WARNING могут содержать личные данные."
+        ),
+        "_cmd_doc_suspend": (
+            ".suspend <время>\n"
+            "Приостанавливает бота на N секунд"
+        ),
+        "_cmd_doc_ping": "Проверить пинг юзербота",
+    }
+
     @staticmethod
     async def dumpcmd(message: Message) -> None:
         """Use in reply to get a dump of a message"""

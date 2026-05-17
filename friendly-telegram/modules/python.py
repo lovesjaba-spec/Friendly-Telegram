@@ -38,14 +38,31 @@ class PythonMod(loader.Module):
         "eval": "<b>🎬 Code:</b>\n<code>{}</code>\n<b>🪄 Result:</b>\n<code>{}</code>",
         "err": "<b>🎬 Code:</b>\n<code>{}</code>\n\n<b>🚫 Error:</b>\n<code>{}</code>",
         "db_permission": (
-            "⚠️ <b>Do not use </b><code>db.set</code><b>,"
-            "</b><code>db.get</code><b> and other db operations."
+            "⚠️ <b>Do not use </b><code>db.set</code><b>, "
+            "</b><code>db.get</code><b> and other db operations. "
             "You have core modules to control anything you want</b>\n\n"
             "<i>Theses commands may <b><u>crash</u></b> your userbot "
             "or even make it <b><u>unusable</u></b>!</i>\n\n"
             "<i>If you issue any errors after allowing this option "
             "<b><u>you will not get any help in support chat</u></b>!</i>"
         ),
+    }
+
+    strings_ru = {
+        "eval": "<b>🎬 Код:</b>\n<code>{}</code>\n<b>🪄 Результат:</b>\n<code>{}</code>",
+        "err": "<b>🎬 Код:</b>\n<code>{}</code>\n\n<b>🚫 Ошибка:</b>\n<code>{}</code>",
+        "db_permission": (
+            "⚠️ <b>Не используйте </b><code>db.set</code><b>, "
+            "</b><code>db.get</code><b> и другие операции с БД. "
+            "Для управления чем угодно есть системные модули</b>\n\n"
+            "<i>Эти команды могут <b><u>сломать</u></b> ваш юзербот "
+            "или даже сделать его <b><u>непригодным</u></b>!</i>\n\n"
+            "<i>Если после включения этой опции у вас возникнут ошибки — "
+            "<b><u>вам не помогут в чате поддержки</u></b>!</i>"
+        ),
+        "_cls_doc": "Выполняет python-код",
+        "_cmd_doc_eval": "Алиас для команды .e",
+        "_cmd_doc_e": "Выполняет python-код",
     }
 
     async def client_ready(self, client, db):

@@ -46,7 +46,7 @@ class UpdaterMod(loader.Module):
         "downloading": "🔄 <b>Downloading updates...</b>",
         "downloaded": (
             "✅ <b>Downloaded successfully.\n"
-            "Please type</b>"
+            "Please type </b>"
             "<code>.restart</code> <b>to restart the bot.</b>"
         ),
         "already_updated": "✅ <b>Already up to date!</b>",
@@ -63,6 +63,36 @@ class UpdaterMod(loader.Module):
             "If you do not migrate, new updates will not be supported. "
             "At the bottom, there are buttons to install on supported platforms.</b>"
         ),
+    }
+
+    strings_ru = {
+        "source": "ℹ️ <b>Исходный код можно посмотреть</b> <a href='{}'>здесь</a>",
+        "restarting_caption": "🔄 <b>Перезапуск...</b>",
+        "downloading": "🔄 <b>Загрузка обновлений...</b>",
+        "downloaded": (
+            "✅ <b>Успешно загружено.\n"
+            "Введите </b>"
+            "<code>.restart</code> <b>для перезапуска бота.</b>"
+        ),
+        "already_updated": "✅ <b>Уже установлена актуальная версия!</b>",
+        "installing": "🔁 <b>Установка обновлений...</b>",
+        "success": "✅ <b>Перезапуск успешен!</b>",
+        "heroku_warning": (
+            "⚠️ <b>API-ключ Heroku не установлен.</b>\n"
+            "Обновление прошло успешно, но изменения будут сбрасываться при каждом перезапуске бота."
+        ),
+        "origin_cfg_doc": "URL git origin, откуда брать обновления",
+        "heroku_support": (
+            "<b>🧸 Heroku больше не поддерживается. "
+            "Просим перейти на другие платформы. "
+            "Если вы не перейдёте, новые обновления поддерживаться не будут. "
+            "Ниже есть кнопки для установки на поддерживаемые платформы.</b>"
+        ),
+        "_cls_doc": "Обновляет сам себя",
+        "_cmd_doc_restart": "Перезапускает юзербот",
+        "_cmd_doc_download": "Скачивает обновления юзербота",
+        "_cmd_doc_update": "Скачивает обновления юзербота",
+        "_cmd_doc_source": "Даёт ссылку на исходный код проекта",
     }
 
     def __init__(self):

@@ -32,8 +32,14 @@ class NoCollisionsMod(loader.Module):
 
     strings = {
         "name": "Anti-collisions",
-        "killed": "<b>All userbots killed</b>",
+        "killed": "✅ <b>All userbots killed</b>",
         "deadbeff": "<code>DEADBEEF</code>",
+    }
+
+    strings_ru = {
+        "killed": "✅ <b>Все юзерботы остановлены</b>",
+        "_cls_doc": "Следит, чтобы одновременно работал только один юзербот",
+        "_cmd_doc_cleanbots": "Останавливает мешающие юзерботы.",
     }
 
     @loader.owner

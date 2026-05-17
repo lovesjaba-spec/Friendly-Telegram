@@ -90,6 +90,64 @@ class GeekSecurityMod(loader.Module):
         "restart": "<i>🔄 Restart may be required to commit changes</i>",
     }
 
+    strings_ru = {
+        "no_command": "🚫 <b>Команда </b><code>{}</code><b> не найдена!</b>",
+        "permissions": "🔐 <b>Здесь можно настроить права для </b><code>{}{}</code>",
+        "close_menu": "🙈 Закрыть меню",
+        "global": (
+            "🔐 <b>Здесь можно настроить глобальную маску ограничений. "
+            "Если право отключено здесь — оно отключено везде!</b>"
+        ),
+        "owner": "🤴 Владелец",
+        "sudo": "🤵 Sudo",
+        "support": "💁‍♂️ Support",
+        "group_owner": "🧛‍♂️ Владелец группы",
+        "group_admin_add_admins": "👨‍💻 Админ (добавлять участников)",
+        "group_admin_change_info": "👨‍💻 Админ (менять инфо)",
+        "group_admin_ban_users": "👨‍💻 Админ (банить)",
+        "group_admin_delete_messages": "👨‍💻 Админ (удалять сообщения)",
+        "group_admin_pin_messages": "👨‍💻 Админ (закреплять)",
+        "group_admin_invite_users": "👨‍💻 Админ (приглашать)",
+        "group_admin": "👨‍💻 Админ (любой)",
+        "group_member": "👥 В группе",
+        "pm": "🤙 В ЛС",
+        "owner_list": "🤴 <b>Пользователи в группе </b><code>owner</code><b>:</b>\n\n{}",
+        "sudo_list": "🤵‍♀️ <b>Пользователи в группе </b><code>sudo</code><b>:</b>\n\n{}",
+        "support_list": "🙋‍♂️ <b>Пользователи в группе </b><code>support</code><b>:</b>\n\n{}",
+        "no_owner": "🤴 <b>В группе </b><code>owner</code><b> нет пользователей</b>",
+        "no_sudo": "🤵‍♀️ <b>В группе </b><code>sudo</code><b> нет пользователей</b>",
+        "no_support": "🙋‍♂️ <b>В группе </b><code>support</code><b> нет пользователей</b>",
+        "owner_added": '🤴 <b><a href="tg://user?id={}">{}</a> добавлен в группу </b><code>owner</code>',
+        "sudo_added": '🤵‍♀️ <b><a href="tg://user?id={}">{}</a> добавлен в группу </b><code>sudo</code>',
+        "support_added": '🙋‍♂️ <b><a href="tg://user?id={}">{}</a> добавлен в группу </b><code>support</code>',
+        "owner_removed": '🤴 <b><a href="tg://user?id={}">{}</a> убран из группы </b><code>owner</code>',
+        "sudo_removed": '🤵‍♀️ <b><a href="tg://user?id={}">{}</a> убран из группы </b><code>sudo</code>',
+        "support_removed": '🙋‍♂️ <b><a href="tg://user?id={}">{}</a> убран из группы </b><code>support</code>',
+        "no_user": "🚫 <b>Укажите пользователя для выдачи прав</b>",
+        "not_a_user": "🚫 <b>Указанный объект не является пользователем</b>",
+        "warning": (
+            '⚠️ <b>Подтвердите, что хотите добавить <a href="tg://user?id={}">{}</a> '
+            "в группу </b><code>{}</code><b>!\n"
+            "Это действие может раскрыть личные данные и предоставить "
+            "полный или частичный доступ к юзерботу этому пользователю</b>"
+        ),
+        "cancel": "🚫 Отмена",
+        "confirm": "👑 Подтвердить",
+        "self": "🚫 <b>Вы не можете повысить/понизить сами себя!</b>",
+        "restart": "<i>🔄 Для применения изменений может понадобиться перезапуск</i>",
+        "_cls_doc": "Управление настройками безопасности (geek3.0.8alpha+)",
+        "_cmd_doc_security": "[команда] - Настроить параметры безопасности команды",
+        "_cmd_doc_sudoadd": "<пользователь> - Добавить пользователя в `sudo`",
+        "_cmd_doc_owneradd": "<пользователь> - Добавить пользователя в `owner`",
+        "_cmd_doc_supportadd": "<пользователь> - Добавить пользователя в `support`",
+        "_cmd_doc_sudorm": "<пользователь> - Убрать пользователя из `sudo`",
+        "_cmd_doc_ownerrm": "<пользователь> - Убрать пользователя из `owner`",
+        "_cmd_doc_supportrm": "<пользователь> - Убрать пользователя из `support`",
+        "_cmd_doc_sudolist": "Список пользователей в `sudo`",
+        "_cmd_doc_ownerlist": "Список пользователей в `owner`",
+        "_cmd_doc_supportlist": "Список пользователей в `support`",
+    }
+
     def get(self, *args) -> dict:
         return self._db.get(self.strings["name"], *args)
 

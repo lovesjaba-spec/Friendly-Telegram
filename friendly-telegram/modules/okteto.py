@@ -20,6 +20,10 @@ class OktetoMod(loader.Module):
         "name": "Okteto",
     }
 
+    strings_ru = {
+        "_cls_doc": "Пингер Okteto",
+    }
+
     async def client_ready(self, client, db):
         self.db = db
         self.client = client

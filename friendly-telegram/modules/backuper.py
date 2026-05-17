@@ -30,6 +30,26 @@ class BackuperMod(loader.Module):
         "notes_restored": "✅ <b>Notes restored</b>",
     }
 
+    strings_ru = {
+        "backup_caption": (
+            "☝️ <b>Это резервная копия вашей базы данных. "
+            "Не передавайте её никому — она содержит личные данные.</b>"
+        ),
+        "reply_to_file": "🚫 <b>Ответьте на файл .{}</b>",
+        "db_restored": "🔄 <b>База данных обновлена, перезапуск...</b>",
+        "modules_backup": "🗃 <b>Резервная копия модулей ({})</b>",
+        "notes_backup": "🗃 <b>Резервная копия заметок ({})</b>",
+        "mods_restored": "✅ <b>Модули восстановлены, перезапуск</b>",
+        "notes_restored": "✅ <b>Заметки восстановлены</b>",
+        "_cls_doc": "Резервное копирование всего и вся",
+        "_cmd_doc_backupdb": "Создать резервную копию базы данных [будет отправлена в ЛС]",
+        "_cmd_doc_restoredb": "Восстановить базу данных из файла",
+        "_cmd_doc_backupmods": "Создать резервную копию модулей",
+        "_cmd_doc_restoremods": "<ответ на файл> - Восстановить модули из копии",
+        "_cmd_doc_backupnotes": "Создать резервную копию заметок",
+        "_cmd_doc_restorenotes": "<ответ на файл> - Восстановить заметки из копии",
+    }
+
     async def client_ready(self, client, db):
         self._db = db
         self._client = client

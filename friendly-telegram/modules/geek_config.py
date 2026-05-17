@@ -45,10 +45,28 @@ class GeekConfigMod(loader.Module):
             "<b>Current: </b><code>{}</code>"
         ),
         "option_saved": (
-            "🎚 <b>Configuring option </b><code>{}</code><b>"
+            "🎚 <b>Configuring option </b><code>{}</code><b> "
             "of mod </b><code>{}</code><b> saved!</b>\n"
             "<b>Current: </b><code>{}</code>"
         ),
+    }
+
+    strings_ru = {
+        "configure": "🎚 <b>Здесь можно настроить конфиги ваших модулей</b>",
+        "configuring_mod": "🎚 <b>Выберите параметр конфига для модуля</b> <code>{}</code>",
+        "configuring_option": (
+            "🎚 <b>Настройка параметра </b><code>{}</code><b> модуля </b><code>{}</code>\n"
+            "<i>ℹ️ {}</i>\n\n"
+            "<b>По умолчанию: </b><code>{}</code>\n\n"
+            "<b>Текущее: </b><code>{}</code>"
+        ),
+        "option_saved": (
+            "🎚 <b>Параметр </b><code>{}</code><b> "
+            "модуля </b><code>{}</code><b> сохранён!</b>\n"
+            "<b>Текущее: </b><code>{}</code>"
+        ),
+        "_cls_doc": "Интерактивный конфигуратор GeekTG",
+        "_cmd_doc_config": "Настроить модули",
     }
 
     def get(self, *args) -> dict:

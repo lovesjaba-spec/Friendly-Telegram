@@ -40,6 +40,35 @@ class GeekSettingsMod(loader.Module):
         "confirm_restart": "🔄 <b>Please, confirm that you want to restart</b>",
     }
 
+    strings_ru = {
+        "watchers": "👀 <b>Вотчеры:</b>\n\n<b>{}</b>",
+        "mod404": "🚫 <b>Вотчер {} не найден</b>",
+        "already_disabled": "👀 <b>Вотчер {} уже отключён</b>",
+        "disabled": "👀 <b>Вотчер {} теперь <u>отключён</u></b>",
+        "enabled": "👀 <b>Вотчер {} теперь <u>включён</u></b>",
+        "args": "🚫 <b>Укажите имя вотчера</b>",
+        "user_nn": "🔰 <b>NoNick для этого пользователя теперь {}</b>",
+        "no_cmd": "🔰 <b>Укажите команду для переключения NoNick</b>",
+        "cmd_nn": "🔰 <b>NoNick для </b><code>{}</code><b> теперь {}</b>",
+        "cmd404": "🔰 <b>Команда не найдена</b>",
+        "inline_settings": "⚙️ <b>Здесь можно настроить параметры GeekTG</b>",
+        "confirm_update": "🪂 <b>Подтвердите обновление. Юзербот будет перезапущен</b>",
+        "confirm_restart": "🔄 <b>Подтвердите перезапуск</b>",
+        "_cls_doc": "Расширенные настройки GeekTG",
+        "_cmd_doc_watchers": "Показать текущие вотчеры",
+        "_cmd_doc_watcherbl": "<модуль> - Переключить вотчер в текущем чате",
+        "_cmd_doc_watcher": (
+            "<модуль> - Переключить глобальные правила вотчера\n"
+            "Аргументы:\n"
+            "[-c - только в чатах]\n"
+            "[-p - только в лс]\n"
+            "[-o - только исходящие]\n"
+            "[-i - только входящие]"
+        ),
+        "_cmd_doc_nonickuser": "Разрешить выполнять команду без никнейма",
+        "_cmd_doc_settings": "Показать меню настроек",
+    }
+
     def get_watchers(self) -> tuple:
         return [
             str(_.__self__.__class__.strings["name"])

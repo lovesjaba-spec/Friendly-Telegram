@@ -39,6 +39,25 @@ class GeekInfoMod(loader.Module):
         ),
     }
 
+    strings_ru = {
+        "_custom_msg_doc": (
+            "Кастомное сообщение должно содержать ключевые слова "
+            "{owner}, {version}, {build}, {upd}, {platform}"
+        ),
+        "_custom_button_doc": "Кастомные кнопки.",
+        "_photo_url_doc": "Можно задать своё фото для geek info.",
+        "default_message": (
+            "<b>🕶 GeekTG Userbot</b>\n\n"
+            "<b>🤴 Владелец:</b> {owner}\n"
+            "<b>🔮 Версия:</b> <i>{version}</i>\n"
+            "<b>🧱 Сборка:</b> {build}\n"
+            "<b>{upd}</b>\n\n"
+            "<b>{platform}</b>"
+        ),
+        "_cls_doc": "Показывает информацию о юзерботе (geek3.1.0alpha+)",
+        "_cmd_doc_info": "Отправить информацию о юзерботе",
+    }
+
     def get(self, *args) -> dict:
         return self._db.get(self.strings["name"], *args)
 
