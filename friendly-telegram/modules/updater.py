@@ -49,7 +49,12 @@ class UpdaterMod(loader.Module):
             "Please type </b>"
             "<code>.restart</code> <b>to restart the bot.</b>"
         ),
-        "already_updated": "✅ <b>Already up to date!</b>",
+        "already_updated": "✅ <b>Already up to date! Nothing to update</b>",
+        "update_available": (
+            "🆕 <b>Updates available: {}</b>\n"
+            "<blockquote>{}</blockquote>\n"
+            "<i>🔄 Updating...</i>"
+        ),
         "installing": "🔁 <b>Installing updates...</b>",
         "success": "✅ <b>Restart successful!</b>",
         "heroku_warning": (
@@ -74,7 +79,12 @@ class UpdaterMod(loader.Module):
             "Введите </b>"
             "<code>.restart</code> <b>для перезапуска бота.</b>"
         ),
-        "already_updated": "✅ <b>Уже установлена актуальная версия!</b>",
+        "already_updated": "✅ <b>Уже установлена последняя версия! Обновлять нечего</b>",
+        "update_available": (
+            "🆕 <b>Доступно обновлений: {}</b>\n"
+            "<blockquote>{}</blockquote>\n"
+            "<i>🔄 Обновляюсь...</i>"
+        ),
         "installing": "🔁 <b>Установка обновлений...</b>",
         "success": "✅ <b>Перезапуск успешен!</b>",
         "heroku_warning": (
@@ -91,7 +101,7 @@ class UpdaterMod(loader.Module):
         "_cls_doc": "Обновляет сам себя",
         "_cmd_doc_restart": "Перезапускает юзербот",
         "_cmd_doc_download": "Скачивает обновления юзербота",
-        "_cmd_doc_update": "Скачивает обновления юзербота",
+        "_cmd_doc_update": "Проверяет и устанавливает обновления юзербота",
         "_cmd_doc_source": "Даёт ссылку на исходный код проекта",
     }
 
@@ -208,9 +218,20 @@ class UpdaterMod(loader.Module):
         except subprocess.CalledProcessError:
             logger.exception("Req install failed")
 
+    async def get_changelog(self):
+        try:
+            repo = Repo(os.path.dirname(utils.get_base_dir()))
+            origin = repo.remote("origin")
+            await utils.run_sync(origin.fetch)
+            branch = repo.active_branch.name
+            return list(repo.iter_commits(f"HEAD..origin/{branch}"))
+        except Exception:
+            logger.exception("Update check failed")
+            return None
+
     @loader.owner
     async def updatecmd(self, message: Message, hard: bool = False) -> None:
-        """Downloads userbot updates"""
+        """Checks for and installs userbot updates"""
         # We don't really care about asyncio at this point, as we are shutting down
         if "DYNO" in os.environ:
             if not self.inline.init_complete:
@@ -235,6 +256,29 @@ class UpdaterMod(loader.Module):
                     ],
                 ],
             )
+        if not hard:
+            changelog = await self.get_changelog()
+
+            if changelog is not None and not changelog:
+                return await utils.answer(
+                    message, self.strings("already_updated", message)
+                )
+
+            if changelog:
+                message = (
+                    await utils.answer(
+                        message,
+                        self.strings("update_available", message).format(
+                            len(changelog),
+                            "\n".join(
+                                f"▫️ {utils.escape_html(commit.summary)}"
+                                for commit in changelog[:10]
+                            ),
+                        ),
+                    )
+                )[0]
+                await asyncio.sleep(2)
+
         if hard:
             os.system(
                 f"cd {utils.get_base_dir()} && cd .. && git reset --hard HEAD"
