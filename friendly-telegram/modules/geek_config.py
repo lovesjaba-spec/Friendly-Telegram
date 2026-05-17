@@ -267,6 +267,7 @@ class GeekConfigMod(loader.Module):
         else:
             await call.edit(self.strings("configure"), reply_markup=kb)
 
+    @loader.command(alias="cfg")
     async def configcmd(self, message: Message) -> None:
         """Configure modules"""
         await self.inline__global_config(message)
