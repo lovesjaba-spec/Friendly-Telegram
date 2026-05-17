@@ -135,6 +135,51 @@ def _sec(func, flags):
     return func
 
 
+BLOCKED_REQUESTS = frozenset({"DeleteAccountRequest"})
+
+
+class ForbiddenRequestError(Exception):
+    """Raised when a module attempts a Telegram request blocked by GeekTG."""
+
+
+def apply_telethon_protection() -> None:
+    """Patch the Telethon client so account-destroying requests can never
+    be sent, no matter which module or client instance issues them."""
+    from telethon import utils as telethon_utils
+    from telethon.client.users import UserMethods
+
+    if getattr(UserMethods, "_geektg_protected", False):
+        return
+
+    original_call = UserMethods._call
+
+    async def _guarded_call(self, sender, request, *args, **kwargs):
+        requests = (
+            request
+            if telethon_utils.is_list_like(request)
+            else (request,)
+        )
+
+        for item in requests:
+            if type(item).__name__ in BLOCKED_REQUESTS:
+                logger.warning(
+                    "Blocked a forbidden Telegram request: %s",
+                    type(item).__name__,
+                )
+                raise ForbiddenRequestError(
+                    f"{type(item).__name__} is permanently blocked by GeekTG"
+                )
+
+        return await original_call(self, sender, request, *args, **kwargs)
+
+    UserMethods._call = _guarded_call
+    UserMethods._geektg_protected = True
+    logger.debug("Telethon account-deletion protection applied")
+
+
+apply_telethon_protection()
+
+
 class SecurityManager:
     def __init__(self, db):
         self._any_admin = db.get(__name__, "any_admin", False)
