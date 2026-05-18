@@ -79,7 +79,7 @@
   var apiDone = {{ 'true' if api_done else 'false' }};
   var screens = ['s-api','s-method','s-qr','s-phone'];
   var qrTimer = null, qrUrl = '', lastCode = '';
-  var dark = '#15171f', light = '#e9eaf0';
+  var dark = '#16285a', light = '#eaf1ff';
 
   function show(id){
     screens.forEach(function(s){
@@ -126,7 +126,7 @@
     if(url === qrUrl){ return; }
     qrUrl = url;
     QRCode.toCanvas(document.getElementById('qr'), url,
-      {width:232,margin:1,color:{dark:'#0c0d11',light:'#ffffff'}}, function(){});
+      {width:232,margin:1,color:{dark:'#0b1c40',light:'#ffffff'}}, function(){});
   }
   function stopQr(){ if(qrTimer){ clearInterval(qrTimer); qrTimer = null; } }
 
