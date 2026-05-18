@@ -584,7 +584,8 @@ class Modules:
                 await mod.client_ready(client, db)
         except ModUnload:
             logging.debug(f"Unloading module {mod}, because it raised ModUnload")
-            self.modules.remove(mod)
+            if mod in self.modules:
+                self.modules.remove(mod)
             return
         except Exception as e:
             logging.exception(
@@ -623,10 +624,12 @@ class Modules:
         """Remove module and all stuff from it"""
         worked = []
         to_remove = []
+        modules_to_remove = set()
 
-        for module in self.modules:
+        for module in self.modules.copy():
             if classname in (module.name, module.__class__.__name__):
                 worked += [module.__module__]
+                modules_to_remove.add(module)
 
                 name = module.__class__.__name__
                 if self._fs and use_fs_for_modules():
@@ -656,7 +659,10 @@ class Modules:
 
         logging.debug("to_remove: %r", to_remove)
         for watcher in self.watchers.copy():
-            if watcher in to_remove:
+            if (
+                watcher in to_remove
+                or getattr(watcher, "__self__", None) in modules_to_remove
+            ):
                 logging.debug("Removing watcher for unload %r", watcher)
                 self.watchers.remove(watcher)
 
