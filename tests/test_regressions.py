@@ -296,5 +296,7 @@ def test_sensitive_restore_commands_are_owner_only(monkeypatch, tmp_path):
     backuper = import_ft("modules.backuper", monkeypatch, tmp_path)
     security = import_ft("security", monkeypatch, tmp_path)
 
+    assert backuper.BackuperMod.backupdbcmd.security == security.OWNER
     assert backuper.BackuperMod.restoredbcmd.security == security.OWNER
     assert backuper.BackuperMod.restoremodscmd.security == security.OWNER
+    assert backuper.BackuperMod.restorenotescmd.security == security.OWNER

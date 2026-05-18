@@ -516,7 +516,7 @@ class InlineManager:
                     and user in self._client.dispatcher.security._support
                     or str(user) in restrict
                 ):
-                    allow = True
+                    allow = False
 
         return allow
 

@@ -54,6 +54,7 @@ class BackuperMod(loader.Module):
         self._db = db
         self._client = client
 
+    @loader.owner
     async def backupdbcmd(self, message: Message) -> None:
         """Create database backup [will be sent in pm]"""
         txt = io.BytesIO(json.dumps(self._db).encode("utf-8"))
@@ -146,6 +147,7 @@ class BackuperMod(loader.Module):
         )
         await message.delete()
 
+    @loader.owner
     async def restorenotescmd(self, message: Message) -> None:
         """<reply to file> - Restore notes from backup"""
         reply = await message.get_reply_message()

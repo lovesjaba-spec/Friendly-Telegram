@@ -422,12 +422,13 @@ class LoaderMod(loader.Module):
             ).group(1)
             ver_ = tuple(map(int, ver.split(".")))
             if getattr(main, "__version__", (0, 0, 0)) < ver_:
-                await utils.answer(
-                    message,
-                    self.strings("version_incompatible").format(
-                        ver, prefix=utils.get_prefix(message)
-                    ),
-                )
+                if isinstance(message, Message):
+                    await utils.answer(
+                        message,
+                        self.strings("version_incompatible").format(
+                            ver, prefix=utils.get_prefix(message)
+                        ),
+                    )
                 return
 
         doc = heroku_compat.compat(doc)

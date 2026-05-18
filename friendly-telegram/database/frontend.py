@@ -129,6 +129,7 @@ class Database(dict):
             await self._backend.do_upload(json.dumps(self))
         except Exception as e:
             self._sync_future.set_exception(e)
+            return
 
         self._sync_future.set_result(True)
 
