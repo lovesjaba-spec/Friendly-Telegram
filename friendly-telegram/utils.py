@@ -313,6 +313,22 @@ async def answer(message, response, **kwargs):
     reply_markup = kwargs.pop("reply_markup", None)
     kwargs.pop("silent", None)
 
+    if (
+        reply_markup is not None
+        and isinstance(response, str)
+        and callable(getattr(message, "edit", None))
+        and getattr(message, "client", None) is None
+    ):
+        edit_kwargs = dict(kwargs)
+        edit_kwargs["reply_markup"] = reply_markup
+        try:
+            ret = await message.edit(response, **edit_kwargs)
+        except TypeError:
+            for key in ("parse_mode", "link_preview", "disable_web_page_preview"):
+                edit_kwargs.pop(key, None)
+            ret = await message.edit(response, **edit_kwargs)
+        return AnswerResult((ret,))
+
     if isinstance(message, list):
         delete_job = asyncio.ensure_future(
             message[0].client.delete_messages(message[0].input_chat, message[1:])

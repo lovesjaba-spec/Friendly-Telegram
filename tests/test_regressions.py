@@ -106,6 +106,26 @@ def test_answer_returns_media_edit_result(monkeypatch, tmp_path):
     assert result[0] == "edited"
 
 
+def test_answer_edits_inline_call_with_markup(monkeypatch, tmp_path):
+    utils = import_ft("utils", monkeypatch, tmp_path)
+
+    class InlineCall:
+        async def edit(self, text, **kwargs):
+            self.edited = (text, kwargs)
+            return "inline-edited"
+
+    call = InlineCall()
+    markup = [[{"text": "Back", "callback": lambda call: None}]]
+
+    async def run():
+        return await utils.answer(call, "panel", reply_markup=markup)
+
+    result = asyncio.run(run())
+
+    assert result[0] == "inline-edited"
+    assert call.edited == ("panel", {"reply_markup": markup})
+
+
 def test_asset_channel_race_uses_asset_lookup(monkeypatch, tmp_path):
     backend = import_ft("database.backend", monkeypatch, tmp_path)
 
