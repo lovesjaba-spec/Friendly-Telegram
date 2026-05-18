@@ -183,7 +183,24 @@ class ModuleConfig(dict):
         # sees stale defaults and config resets on restart.
         config = getattr(self, "_config", None)
         if config is not None and key in config:
-            config[key].value = value
+            entry = config[key]
+            if entry.validator is not None and value is not None:
+                value = entry.validator.validate(value)
+            entry.value = value
+        super().__setitem__(key, value)
+
+    def set_no_raise(self, key, value):
+        """Set a value, resetting to the default if it fails validation"""
+        config = getattr(self, "_config", None)
+        if config is not None and key in config:
+            entry = config[key]
+            if entry.validator is not None and value is not None:
+                try:
+                    value = entry.validator.validate(value)
+                except validators.ValidationError:
+                    logging.debug("Config value %s was invalid, reset to default", key)
+                    value = entry.default
+            entry.value = value
         super().__setitem__(key, value)
 
     def getdoc(self, key, message=None):
@@ -480,12 +497,14 @@ class Modules:
             modcfg = db.get(mod.__module__, "__config__", {})
             for conf in mod.config.keys():
                 if conf in modcfg.keys():
-                    mod.config[conf] = modcfg[conf]
+                    mod.config.set_no_raise(conf, modcfg[conf])
                 else:
                     try:
-                        mod.config[conf] = os.environ[f"{mod.__module__}.{conf}"]
+                        mod.config.set_no_raise(
+                            conf, os.environ[f"{mod.__module__}.{conf}"]
+                        )
                     except KeyError:
-                        mod.config[conf] = mod.config.getdef(conf)
+                        mod.config.set_no_raise(conf, mod.config.getdef(conf))
 
         if babel is not None and not hasattr(mod, "name"):
             mod.name = mod.strings["name"]

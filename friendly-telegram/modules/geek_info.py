@@ -106,7 +106,7 @@ class GeekInfoMod(loader.Module):
             branch = repo.active_branch.name
             diff = repo.git.log([f"HEAD..{ref}/{branch}", "--oneline"])
             upd = (
-                "⚠️ Update required </b><code>.update</code><b>"
+                f"⚠️ Update required </b><code>{utils.get_prefix(self._db)}update</code><b>"
                 if diff
                 else "✅ Up-to-date"
             )

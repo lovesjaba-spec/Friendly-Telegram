@@ -171,7 +171,7 @@ class LoaderMod(loader.Module):
             "🚫 <b>This module requires GeekTG inline feature and initialization of InlineManager failed</b>\n"
             "<i>Please, remove one of your old bots from @BotFather and restart userbot to load this module</i>"
         ),
-        "version_incompatible": "🚫 <b>This module requires GeekTG {}+\nPlease, update with </b><code>.update</code>",
+        "version_incompatible": "🚫 <b>This module requires GeekTG {}+\nPlease, update with </b><code>{prefix}update</code>",
         "non_heroku": "♓️ <b>This module is not supported on Heroku</b>",
         "ffmpeg_required": "🚫 <b>This module requires FFMPEG, which is not installed</b>",
         "developer": "\n🧑‍💻 <b>Developer:</b> <code>{}</code>",
@@ -217,7 +217,7 @@ class LoaderMod(loader.Module):
             "🚫 <b>Этому модулю нужна inline-функция GeekTG, а инициализация InlineManager не удалась</b>\n"
             "<i>Удалите одного из старых ботов в @BotFather и перезапустите юзербот, чтобы загрузить модуль</i>"
         ),
-        "version_incompatible": "🚫 <b>Этому модулю нужен GeekTG {}+\nОбновитесь командой </b><code>.update</code>",
+        "version_incompatible": "🚫 <b>Этому модулю нужен GeekTG {}+\nОбновитесь командой </b><code>{prefix}update</code>",
         "non_heroku": "♓️ <b>Этот модуль не поддерживается на Heroku</b>",
         "ffmpeg_required": "🚫 <b>Этому модулю нужен FFMPEG, который не установлен</b>",
         "developer": "\n🧑‍💻 <b>Разработчик:</b> <code>{}</code>",
@@ -409,7 +409,10 @@ class LoaderMod(loader.Module):
             ver_ = tuple(map(int, ver.split(".")))
             if main.__version__ < ver_:
                 await utils.answer(
-                    message, self.strings("version_incompatible").format(ver)
+                    message,
+                    self.strings("version_incompatible").format(
+                        ver, prefix=utils.get_prefix(message)
+                    ),
                 )
                 return
 

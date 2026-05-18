@@ -46,7 +46,7 @@ class TestMod(loader.Module):
             "⚠️ <b>Log level </b><code>{0}</code><b> "
             "may reveal your confidential info, be careful</b>\n"
             "<b>Type </b>"
-            "<code>.logs {0} force_insecure</code>"
+            "<code>{1}logs {0} force_insecure</code>"
             "<b> to ignore this warning</b>"
         ),
         "choose_loglevel": "💁‍♂️ <b>Choose log level</b>",
@@ -67,7 +67,7 @@ class TestMod(loader.Module):
             "⚠️ <b>Уровень логов </b><code>{0}</code><b> "
             "может раскрыть конфиденциальную информацию, будьте осторожны</b>\n"
             "<b>Введите </b>"
-            "<code>.logs {0} force_insecure</code>"
+            "<code>{1}logs {0} force_insecure</code>"
             "<b>, чтобы игнорировать предупреждение</b>"
         ),
         "choose_loglevel": "💁‍♂️ <b>Выберите уровень логов</b>",
@@ -214,7 +214,10 @@ class TestMod(loader.Module):
                     )
             else:
                 await utils.answer(
-                    message, self.strings("confidential_text").format(named_lvl)
+                    message,
+                    self.strings("confidential_text").format(
+                        named_lvl, utils.get_prefix(message)
+                    ),
                 )
 
             return

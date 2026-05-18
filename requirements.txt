@@ -33,3 +33,7 @@ aiogram==3.28.2
 
 # Translation backend for the Translate module
 deep-translator==1.11.4
+
+# Config-value validators (.config / .fcfg)
+grapheme==0.6.0
+emoji==2.15.0

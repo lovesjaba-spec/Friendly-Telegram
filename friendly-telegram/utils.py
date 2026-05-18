@@ -153,6 +153,20 @@ def get_chat_id(message):
     return telethon.utils.resolve_id(message.chat_id)[0]
 
 
+def get_prefix(source):
+    """Return the active command prefix; pass either a database or a message"""
+    try:
+        db = source.client.dispatcher._db if hasattr(source, "client") else source
+        prefix = db.get("friendly-telegram.main", "command_prefix", ".") or "."
+    except Exception:
+        return "."
+
+    if isinstance(prefix, (list, tuple)):
+        prefix = prefix[0] if prefix else "."
+
+    return prefix
+
+
 def rand(length):
     """Generate a random string of given length"""
     return "".join(

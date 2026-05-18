@@ -9,6 +9,8 @@ import logging
 import re
 import typing
 
+from . import validators  # noqa: F401
+
 logger = logging.getLogger(__name__)
 
 _MARKERS = (
@@ -212,30 +214,6 @@ class ConfigValue:
         return True
 
 
-class _Validator:
-    def __init__(self, name, *args, **kwargs):
-        self.validator_name = name
-        self.args = args
-        self.kwargs = kwargs
-
-    def validate(self, value, *args, **kwargs):
-        return value
-
-
-class _ValidatorFactory:
-    def __init__(self, name):
-        self._name = name
-
-    def __call__(self, *args, **kwargs):
-        return _Validator(self._name, *args, **kwargs)
-
-
-class _Validators:
-    def __getattr__(self, name):
-        return _ValidatorFactory(name)
-
-
-validators = _Validators()
 
 
 class PointerList(list):

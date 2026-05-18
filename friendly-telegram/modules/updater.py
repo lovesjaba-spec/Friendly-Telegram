@@ -47,7 +47,7 @@ class UpdaterMod(loader.Module):
         "downloaded": (
             "✅ <b>Downloaded successfully.\n"
             "Please type </b>"
-            "<code>.restart</code> <b>to restart the bot.</b>"
+            "<code>{prefix}restart</code> <b>to restart the bot.</b>"
         ),
         "already_updated": "✅ <b>Already up to date! Nothing to update</b>",
         "update_available": (
@@ -66,7 +66,7 @@ class UpdaterMod(loader.Module):
         "update_notification": (
             "🆕 <b>A GeekTG update is available — {} new commit(s):</b>\n"
             "<blockquote>{}</blockquote>\n"
-            "<i>Run </i><code>.update</code><i> to install it</i>"
+            "<i>Run </i><code>{prefix}update</code><i> to install it</i>"
         ),
         "check_update_doc": "Check the repo for new commits in the background",
         "check_interval_doc": "How often (in hours) to check for updates",
@@ -90,7 +90,7 @@ class UpdaterMod(loader.Module):
         "downloaded": (
             "✅ <b>Успешно загружено.\n"
             "Введите </b>"
-            "<code>.restart</code> <b>для перезапуска бота.</b>"
+            "<code>{prefix}restart</code> <b>для перезапуска бота.</b>"
         ),
         "already_updated": "✅ <b>Уже установлена последняя версия! Обновлять нечего</b>",
         "update_available": (
@@ -109,7 +109,7 @@ class UpdaterMod(loader.Module):
         "update_notification": (
             "🆕 <b>Доступно обновление GeekTG — новых коммитов: {}</b>\n"
             "<blockquote>{}</blockquote>\n"
-            "<i>Выполните </i><code>.update</code><i> для установки</i>"
+            "<i>Выполните </i><code>{prefix}update</code><i> для установки</i>"
         ),
         "check_update_doc": "Фоновая проверка репозитория на новые коммиты",
         "check_interval_doc": "Как часто (в часах) проверять обновления",
@@ -220,7 +220,12 @@ class UpdaterMod(loader.Module):
             )
         message = await utils.answer(message, self.strings("downloading", message))
         await self.download_common()
-        await utils.answer(message, self.strings("downloaded", message))
+        await utils.answer(
+            message,
+            self.strings("downloaded", message).format(
+                prefix=utils.get_prefix(self._db)
+            ),
+        )
 
     async def download_common(self):
         try:
@@ -454,6 +459,7 @@ class UpdaterMod(loader.Module):
                     f"▫️ {utils.escape_html(commit.summary)}"
                     for commit in changelog[:10]
                 ),
+                prefix=utils.get_prefix(self._db),
             ),
         )
 
