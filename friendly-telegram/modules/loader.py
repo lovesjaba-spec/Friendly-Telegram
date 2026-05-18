@@ -491,11 +491,15 @@ class LoaderMod(loader.Module):
                     "Module loading failed, attemping dependency installation",
                     exc_info=True,
                 )
+                requirements_match = VALID_PIP_PACKAGES.search(doc)
+                if not requirements_match:
+                    raise
+
                 # Let's try to reinstall dependencies
                 requirements = list(
                     filter(
                         lambda x: x and x[0] not in ("-", "_", "."),
-                        map(str.strip, VALID_PIP_PACKAGES.search(doc)[1].split(" ")),
+                        map(str.strip, requirements_match[1].split(" ")),
                     )
                 )
 

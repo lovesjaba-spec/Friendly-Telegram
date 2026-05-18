@@ -585,6 +585,7 @@ class Modules:
         except ModUnload:
             logging.debug(f"Unloading module {mod}, because it raised ModUnload")
             self.modules.remove(mod)
+            return
         except Exception as e:
             logging.exception(
                 f"Failed to send mod init complete"
@@ -645,6 +646,13 @@ class Modules:
                 to_remove += module.commands.values()
                 if hasattr(module, "watcher"):
                     to_remove += [module.watcher]
+                to_remove += [
+                    getattr(module, method_name)
+                    for method_name in dir(module)
+                    if method_name != "watcher"
+                    and callable(getattr(module, method_name, None))
+                    and getattr(getattr(module, method_name), "is_watcher", False)
+                ]
 
         logging.debug("to_remove: %r", to_remove)
         for watcher in self.watchers.copy():

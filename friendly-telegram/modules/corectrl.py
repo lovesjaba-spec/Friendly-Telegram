@@ -35,6 +35,7 @@ class CoreMod(loader.Module):
         "unblacklisted": "✅ <b>Chat {} unblacklisted from userbot</b>",
         "user_blacklisted": "✅ <b>User {} blacklisted from userbot</b>",
         "user_unblacklisted": "✅ <b>User {} unblacklisted from userbot</b>",
+        "who_to_blacklist": "❓ <b>Which user should be blacklisted?</b>",
         "what_prefix": "❓ <b>What should the prefix be set to?</b>",
         "prefix_incorrect": "🚫 <b>Prefix must be one symbol in length</b>",
         "prefix_set": (
@@ -84,6 +85,7 @@ class CoreMod(loader.Module):
         "unblacklisted": "✅ <b>Чат {} убран из чёрного списка юзербота</b>",
         "user_blacklisted": "✅ <b>Пользователь {} добавлен в чёрный список юзербота</b>",
         "user_unblacklisted": "✅ <b>Пользователь {} убран из чёрного списка юзербота</b>",
+        "who_to_blacklist": "❓ <b>Какого пользователя добавить в чёрный список?</b>",
         "what_prefix": "❓ <b>Какой префикс установить?</b>",
         "prefix_incorrect": "🚫 <b>Префикс должен быть длиной в один символ</b>",
         "prefix_set": (
@@ -247,13 +249,15 @@ class CoreMod(loader.Module):
             if message.is_private:
                 return message.to_id.user_id
 
-            await utils.answer(message, self.strings("who_to_unblacklist", message))
+            await utils.answer(message, self.strings("who_to_blacklist", message))
             return
 
     async def blacklistusercmd(self, message: Message) -> None:
         """.blacklistuser [id]
         Prevent this user from running any commands"""
         user = await self.getuser(message)
+        if user is None:
+            return
 
         self._db.set(
             main.__name__,
@@ -269,6 +273,8 @@ class CoreMod(loader.Module):
         """.unblacklistuser [id]
         Allow this user to run permitted commands"""
         user = await self.getuser(message)
+        if user is None:
+            return
 
         self._db.set(
             main.__name__,

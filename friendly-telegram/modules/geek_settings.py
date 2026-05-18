@@ -31,6 +31,7 @@ class GeekSettingsMod(loader.Module):
         "disabled": "👀 <b>Watcher {} is now <u>disabled</u></b>",
         "enabled": "👀 <b>Watcher {} is now <u>enabled</u></b>",
         "args": "🚫 <b>You need to specify watcher name</b>",
+        "reply_required": "🚫 <b>Reply to a user's message</b>",
         "user_nn": "🔰 <b>NoNick for this user is now {}</b>",
         "no_cmd": "🔰 <b>Please, specify command to toggle NoNick for</b>",
         "cmd_nn": "🔰 <b>NoNick for </b><code>{}</code><b> is now {}</b>",
@@ -54,6 +55,7 @@ class GeekSettingsMod(loader.Module):
         "disabled": "👀 <b>Вотчер {} теперь <u>отключён</u></b>",
         "enabled": "👀 <b>Вотчер {} теперь <u>включён</u></b>",
         "args": "🚫 <b>Укажите имя вотчера</b>",
+        "reply_required": "🚫 <b>Ответьте на сообщение пользователя</b>",
         "user_nn": "🔰 <b>NoNick для этого пользователя теперь {}</b>",
         "no_cmd": "🔰 <b>Укажите команду для переключения NoNick</b>",
         "cmd_nn": "🔰 <b>NoNick для </b><code>{}</code><b> теперь {}</b>",
@@ -228,6 +230,10 @@ class GeekSettingsMod(loader.Module):
     async def nonickusercmd(self, message: Message) -> None:
         """Allow certain command to be executed without nickname"""
         reply = await message.get_reply_message()
+        if not reply:
+            await utils.answer(message, self.strings("reply_required", message))
+            return
+
         u = reply.sender_id
         if not isinstance(u, int):
             u = u.user_id

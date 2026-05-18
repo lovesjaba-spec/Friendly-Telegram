@@ -29,7 +29,7 @@ async def read_stream(func: callable, stream, delay: float):
         if not dat:
             if last_task:
                 last_task.cancel()
-                await func(data.decode())
+                await func(data.decode("utf-8", "replace"))
 
             break
 
@@ -43,7 +43,7 @@ async def read_stream(func: callable, stream, delay: float):
 
 async def sleep_for_task(func: callable, data: bytes, delay: float):
     await asyncio.sleep(delay)
-    await func(data.decode())
+    await func(data.decode("utf-8", "replace"))
 
 
 class MessageEditor:

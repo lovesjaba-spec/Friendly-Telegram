@@ -7,8 +7,8 @@ import io
 import json
 import logging
 
-import PIL
 import requests
+from PIL import Image
 from telethon import utils
 from telethon.tl.types import (
     ChannelParticipantCreator,
@@ -48,7 +48,7 @@ null = None
 false = False
 true = True
 
-PIL.Image.MAX_IMAGE_PIXELS = null
+Image.MAX_IMAGE_PIXELS = null
 
 
 class dict(dict):
@@ -193,10 +193,7 @@ class mQuotesMod(loader.Module):
         )
 
         if resp.status_code == 418:
-            if await update(self.allmodules.modules, msg):
-                await self.allmodules.commands["quote"](msg)
-            else:
-                await msg.edit("<b>Update error</b>")
+            await msg.edit("<b>Quote API requires a module update</b>")
             return
 
         if resp.status_code != 200:
@@ -211,7 +208,7 @@ class mQuotesMod(loader.Module):
         image.name = "quote.webp"
 
         try:
-            PIL.Image.open(io.BytesIO(resp.content)).save(image, "WEBP")
+            Image.open(io.BytesIO(resp.content)).save(image, "WEBP")
         except Exception:
             await msg.edit(
                 "🚫 <b>Quote API returned an invalid response, try again later</b>"

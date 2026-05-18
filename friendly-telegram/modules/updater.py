@@ -408,7 +408,16 @@ class UpdaterMod(loader.Module):
         self._db.set(__name__, "selfupdatemsg", None)
         self._db.set(__name__, "update_changelog", None)
 
-        asyncio.ensure_future(self._update_watchdog())
+        old_watchdog = getattr(self, "_update_watchdog_task", None)
+        if old_watchdog and not old_watchdog.done():
+            old_watchdog.cancel()
+
+        self._update_watchdog_task = asyncio.ensure_future(self._update_watchdog())
+
+    async def on_unload(self):
+        watchdog = getattr(self, "_update_watchdog_task", None)
+        if watchdog and not watchdog.done():
+            watchdog.cancel()
 
     async def _update_watchdog(self) -> None:
         await asyncio.sleep(60)

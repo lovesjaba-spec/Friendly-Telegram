@@ -44,14 +44,17 @@ class WhoIsMod(loader.Module):
         user = await message.client(GetFullUserRequest(user.id))
         photo, caption = await get_user_info(user, message)
 
-        await message.client.send_file(
-            message.chat_id,
-            photo if photo else None,
-            caption=caption,
-            link_preview=False,
-            reply_to=reply.id if reply else None,
-        )
-        os.remove(photo)
+        if photo:
+            await message.client.send_file(
+                message.chat_id,
+                photo,
+                caption=caption,
+                link_preview=False,
+                reply_to=reply.id if reply else None,
+            )
+            os.remove(photo)
+        else:
+            await utils.answer(message, caption)
         await message.delete()
 
     async def chatinfocmd(self, message):

@@ -61,6 +61,7 @@ class BackuperMod(loader.Module):
         await self._client.send_file("me", txt, caption=self.strings("backup_caption"))
         await message.delete()
 
+    @loader.owner
     async def restoredbcmd(self, message: Message) -> None:
         """Restore database from file"""
         reply = await message.get_reply_message()
@@ -105,6 +106,7 @@ class BackuperMod(loader.Module):
         )
         await message.delete()
 
+    @loader.owner
     async def restoremodscmd(self, message: Message) -> None:
         """<reply to file> - Restore mods from backup"""
         reply = await message.get_reply_message()

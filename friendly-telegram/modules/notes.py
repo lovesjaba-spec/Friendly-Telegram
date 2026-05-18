@@ -110,6 +110,7 @@ class NotesMod(loader.Module):
         args = utils.get_args(message)
         if not args:
             await utils.answer(message, self.strings("delnote_args", message))
+            return
         self.del_note(args[0])
         await utils.answer(message, self.strings("delnote_done", message))
 

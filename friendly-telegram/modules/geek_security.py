@@ -320,6 +320,9 @@ class GeekSecurityMod(loader.Module):
                 pass
 
         if user is None:
+            if not reply:
+                await utils.answer(message, self.strings("no_user"))
+                return
             user = await self._client.get_entity(reply.sender_id)
 
         if not isinstance(user, (User, PeerUser)):

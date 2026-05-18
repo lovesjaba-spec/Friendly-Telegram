@@ -18,6 +18,7 @@ def test_dependencies_importable():
         "aiohttp",
         "aiohttp_jinja2",
         "jinja2",
+        "PIL",
         "requests",
         "grapheme",
         "emoji",

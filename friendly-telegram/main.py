@@ -120,7 +120,7 @@ def gen_port():
 
     # If we didn't get port from config, generate new one
     # First, try to randomly get port
-    port = random.randint(1024, 65536)
+    port = random.randint(1024, 65535)
 
     # Then ensure it's free
     while (
@@ -230,7 +230,11 @@ def get_phones(arguments):
     authtoken = {}
     if arguments.tokens:
         for token in arguments.tokens:
-            phone = sorted(filter(lambda phone: ":" not in phone, phones.values()))[0]
+            available_phones = sorted(filter(lambda phone: ":" not in phone, phones.values()))
+            if not available_phones:
+                raise RuntimeError("--token requires at least one phone or session")
+
+            phone = available_phones[0]
             del phones[phone]
             authtoken[phone] = token
 

@@ -1486,7 +1486,7 @@ class InlineManager:
         self._forms[form_uid] = {
             "text": text,
             "buttons": reply_markup,
-            "ttl": round(time.time()) + ttl or self._markup_ttl,
+            "ttl": round(time.time()) + (ttl or self._markup_ttl),
             "force_me": force_me,
             "always_allow": always_allow,
             "chat": None,
@@ -1618,7 +1618,7 @@ class InlineManager:
 
         self._galleries[gallery_uid] = {
             "caption": caption,
-            "ttl": round(time.time()) + ttl or self._markup_ttl,
+            "ttl": round(time.time()) + (ttl or self._markup_ttl),
             "force_me": force_me,
             "always_allow": always_allow,
             "chat": None,

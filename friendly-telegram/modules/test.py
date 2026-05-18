@@ -101,6 +101,7 @@ class TestMod(loader.Module):
     async def cancel(call: aiogram.types.CallbackQuery) -> None:
         await call.delete()
 
+    @loader.owner
     async def logscmd(
         self,
         message: Union[Message, aiogram.types.CallbackQuery],

@@ -49,7 +49,7 @@ class CloudBackend:
     async def _make_asset_channel(self):
         async with self._anti_double_asset_lock:
             if self._assets_already_exists:
-                return await self._find_data_channel()
+                return await self._find_asset_channel()
             self._assets_already_exists = True
             return (
                 await self._client(

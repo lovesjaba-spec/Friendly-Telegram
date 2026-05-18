@@ -142,6 +142,31 @@ class ForbiddenRequestError(Exception):
     """Raised when a module attempts a Telegram request blocked by GeekTG."""
 
 
+def _contains_blocked_request(request, seen=None) -> bool:
+    """Return True if request or any nested TL object is forbidden."""
+    if seen is None:
+        seen = set()
+
+    obj_id = id(request)
+    if obj_id in seen:
+        return False
+    seen.add(obj_id)
+
+    if type(request).__name__ in BLOCKED_REQUESTS:
+        return True
+
+    if isinstance(request, dict):
+        values = request.values()
+    elif isinstance(request, (list, tuple, set, frozenset)):
+        values = request
+    elif hasattr(request, "__dict__"):
+        values = vars(request).values()
+    else:
+        return False
+
+    return any(_contains_blocked_request(value, seen) for value in values)
+
+
 def apply_telethon_protection() -> None:
     """Patch the Telethon client so account-destroying requests can never
     be sent, no matter which module or client instance issues them."""
@@ -161,13 +186,13 @@ def apply_telethon_protection() -> None:
         )
 
         for item in requests:
-            if type(item).__name__ in BLOCKED_REQUESTS:
+            if _contains_blocked_request(item):
                 logger.warning(
-                    "Blocked a forbidden Telegram request: %s",
+                    "Blocked a forbidden Telegram request chain: %s",
                     type(item).__name__,
                 )
                 raise ForbiddenRequestError(
-                    f"{type(item).__name__} is permanently blocked by GeekTG"
+                    "Account deletion requests are permanently blocked by GeekTG"
                 )
 
         return await original_call(self, sender, request, *args, **kwargs)
