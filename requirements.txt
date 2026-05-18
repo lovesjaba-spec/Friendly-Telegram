@@ -29,7 +29,7 @@ Jinja2==3.1.2
 requests==2.32.5
 
 # Inline buttons support
-aiogram==3.22.0
+aiogram==3.28.2
 
 # Translation backend for the Translate module
 deep-translator==1.11.4

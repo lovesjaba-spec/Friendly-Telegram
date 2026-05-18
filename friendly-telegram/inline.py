@@ -168,6 +168,16 @@ def array_sum(array: list) -> Any:
     return result
 
 
+def _caller_module() -> str:
+    """Best-effort name of the userbot module that called into the inline API"""
+    for frame_info in inspect.stack()[2:]:
+        name = frame_info.frame.f_globals.get("__name__", "")
+        if name and name != __name__ and not name.startswith("aiogram"):
+            return name
+
+    return "unknown"
+
+
 async def edit(
     text: str,
     reply_markup: List[List[dict]] = None,
@@ -403,6 +413,11 @@ class InlineManager:
         self._client = client
         self._db = db
         self._allmodules = allmodules
+
+        try:
+            client.inline = self
+        except (AttributeError, TypeError):
+            logger.debug("Could not attach InlineManager to the client")
 
         self._token = db.get("geektg.inline", "bot_token", False)
 
@@ -833,6 +848,12 @@ class InlineManager:
         if not form_uid and not buttons:
             return None
 
+        caller = (
+            self._forms[form_uid].get("caller", "unknown")
+            if isinstance(form_uid, str) and form_uid in self._forms
+            else "direct call"
+        )
+
         keyboard = []
         if form_uid:
             for row in (
@@ -844,8 +865,15 @@ class InlineManager:
                     if "callback" in button and "_callback_data" not in button:
                         button["_callback_data"] = rand(30)
 
-                    if "input" in button and "_switch_query" not in button:
-                        button["_switch_query"] = rand(10)
+                    if "input" in button:
+                        if "_switch_query" not in button:
+                            button["_switch_query"] = rand(10)
+                        if "handler" not in button:
+                            logger.warning(
+                                "Inline `input` button from `%s` has no "
+                                "`handler` — entered text will be ignored",
+                                caller,
+                            )
 
         buttons = buttons or self._forms[form_uid]["buttons"] if isinstance(form_uid, str) else form_uid
 
@@ -901,18 +929,35 @@ class InlineManager:
                         btn["switch_inline_query"] = button["switch_inline_query"]
                     else:
                         logger.warning(
-                            "Button have not been added to "
-                            "form, because it is not structured "
-                            f"properly. {button}"
+                            "Button from `%s` was not added to the form "
+                            "because it is not structured properly: %s",
+                            caller,
+                            button,
                         )
                         continue
+
+                    style = button.get("style")
+                    if style in ("danger", "primary", "success"):
+                        btn["style"] = style
+                    elif style:
+                        logger.warning(
+                            "Ignored unknown button style %r from `%s` "
+                            "(expected `danger`, `primary` or `success`)",
+                            style,
+                            caller,
+                        )
+
+                    icon = button.get("icon") or button.get("icon_custom_emoji_id")
+                    if icon:
+                        btn["icon_custom_emoji_id"] = str(icon)
 
                     line += [InlineKeyboardButton(**btn)]
                 except KeyError:
                     logger.exception(
-                        "Error while forming markup! Probably, you "
-                        "passed wrong type combination for button. "
-                        "Contact developer of module."
+                        "Error while forming markup for `%s`! Probably you "
+                        "passed a wrong type combination for a button. "
+                        "Contact the developer of that module.",
+                        caller,
                     )
                     return False
 
@@ -1324,6 +1369,8 @@ class InlineManager:
                         default one (1 day) and must be either `int` or `False`
         """
 
+        caller = _caller_module()
+
         if isinstance(message, (list, tuple)) and message:
             message = message[0]
 
@@ -1363,7 +1410,10 @@ class InlineManager:
         if not all(
             all(isinstance(button, dict) for button in row) for row in reply_markup
         ):
-            logger.error("Invalid type for one of the buttons. It must be `dict`")
+            logger.error(
+                "Invalid type for one of the buttons from `%s`. It must be `dict`",
+                caller,
+            )
             return False
 
         if not all(
@@ -1374,9 +1424,10 @@ class InlineManager:
             for row in reply_markup
         ):
             logger.error(
-                "Invalid button specified. "
+                "Invalid button specified by `%s`. "
                 "Button must contain one of the following fields:\n"
-                "  - " + "\n  - ".join(f"`{key}`" for key in _BUTTON_KEYS)
+                "  - " + "\n  - ".join(f"`{key}`" for key in _BUTTON_KEYS),
+                caller,
             )
             return False
 
@@ -1416,6 +1467,7 @@ class InlineManager:
             "message_id": None,
             "photo": photo,
             "uid": form_uid,
+            "caller": caller,
         }
 
         try:

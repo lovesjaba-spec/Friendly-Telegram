@@ -295,9 +295,7 @@ class AnswerResult(list):
 
 async def answer(message, response, **kwargs):
     """Use this to give the response to a command"""
-    # A userbot account cannot attach inline keyboards to its own messages;
-    # Heroku modules pass `reply_markup` here, so drop it instead of crashing
-    kwargs.pop("reply_markup", None)
+    reply_markup = kwargs.pop("reply_markup", None)
     kwargs.pop("silent", None)
 
     if isinstance(message, list):
@@ -307,6 +305,19 @@ async def answer(message, response, **kwargs):
         message = message[0]
     else:
         delete_job = None
+
+    if reply_markup is not None and isinstance(response, str):
+        inline = getattr(getattr(message, "client", None), "inline", None)
+        if inline is not None and getattr(inline, "init_complete", False):
+            form = await inline.form(
+                text=response,
+                message=message,
+                reply_markup=reply_markup,
+            )
+            if form:
+                if delete_job is not None:
+                    await delete_job
+                return form
 
     if (
         await message.client.is_bot()

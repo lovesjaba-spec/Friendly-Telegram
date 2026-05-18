@@ -407,6 +407,7 @@ class UpdaterMod(loader.Module):
 
     async def _update_watchdog(self) -> None:
         await asyncio.sleep(60)
+        logger.debug("Update watchdog started")
 
         while True:
             if self.config["AUTO_CHECK_UPDATE"]:
@@ -428,8 +429,15 @@ class UpdaterMod(loader.Module):
 
         changelog = await self.get_changelog()
 
-        if not changelog:
+        if changelog is None:
+            logger.warning("Update check skipped: could not read the repository")
             return
+
+        if not changelog:
+            logger.debug("Update check: already up to date, nothing to notify")
+            return
+
+        logger.info("Update check: %d new commit(s) available", len(changelog))
 
         latest = changelog[0].hexsha
 
