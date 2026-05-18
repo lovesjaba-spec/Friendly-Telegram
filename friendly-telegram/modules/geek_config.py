@@ -145,7 +145,7 @@ class GeekConfigMod(loader.Module):
 
         cfg = self._db.setdefault(module.__module__, {}).setdefault("__config__", {})
 
-        if not query:
+        if query is None or query == "":
             module.config.set_no_raise(option, module.config.getdef(option))
             cfg.pop(option, None)
         else:
@@ -248,6 +248,81 @@ class GeekConfigMod(loader.Module):
                 call, mod, option, str(result), inline_message_id
             )
 
+    async def inline__multichoice(
+        self,
+        call: CallbackQuery,
+        mod: str,
+        option: str,
+        value: str,
+        inline_message_id: str,
+    ) -> None:  # noqa
+        module = self._lookup(mod)
+        if module is None:
+            return
+
+        current = module.config[option]
+        current = list(current) if isinstance(current, (list, tuple)) else []
+        if value in [str(x) for x in current]:
+            current = [x for x in current if str(x) != value]
+        else:
+            current = current + [value]
+
+        ok, result = self._apply_config(mod, option, current)
+        if ok:
+            await self.inline__configure_option(call, mod, option)
+        else:
+            await self._config_error(
+                call, mod, option, str(result), inline_message_id
+            )
+
+    async def inline__series_del(
+        self,
+        call: CallbackQuery,
+        mod: str,
+        option: str,
+        index: int,
+        inline_message_id: str,
+    ) -> None:  # noqa
+        module = self._lookup(mod)
+        if module is None:
+            return
+
+        current = module.config[option]
+        current = list(current) if isinstance(current, (list, tuple)) else []
+        if 0 <= index < len(current):
+            del current[index]
+
+        ok, result = self._apply_config(mod, option, current)
+        if ok:
+            await self.inline__configure_option(call, mod, option)
+        else:
+            await self._config_error(
+                call, mod, option, str(result), inline_message_id
+            )
+
+    async def inline__series_add(
+        self,
+        call: CallbackQuery,
+        query: str,
+        mod: str,
+        option: str,
+        inline_message_id: str,
+    ) -> None:  # noqa
+        module = self._lookup(mod)
+        if module is None:
+            return
+
+        current = module.config[option]
+        current = list(current) if isinstance(current, (list, tuple)) else []
+
+        ok, result = self._apply_config(mod, option, current + [query])
+        if ok:
+            await self.inline__configure_option(call, mod, option)
+        else:
+            await self._config_error(
+                call, mod, option, str(result), inline_message_id
+            )
+
     async def inline__configure_option(
         self, call: Union[Message, CallbackQuery], mod: str, config_opt: str
     ) -> None:  # noqa
@@ -270,29 +345,67 @@ class GeekConfigMod(loader.Module):
 
         validator = module.config.get_validator(config_opt)
         internal = getattr(validator, "internal_id", None)
+        keywords = getattr(getattr(validator, "validate", None), "keywords", {})
+        possible = keywords.get("possible_values")
+        possible = list(possible) if isinstance(possible, (list, tuple)) else None
 
-        choices = None
-        if internal in ("Choice", "MultiChoice"):
-            keywords = getattr(getattr(validator, "validate", None), "keywords", {})
-            possible = keywords.get("possible_values")
-            if isinstance(possible, (list, tuple)):
-                choices = list(possible)
+        value = module.config[config_opt]
 
-        if choices is not None:
-            current = str(module.config[config_opt])
+        if internal == "Choice" and possible is not None:
+            current = str(value)
             choice_btns = [
                 {
                     "text": f"{'☑️' if str(choice) == current else '🔘'} {choice}",
                     "callback": self.inline__set_bool,
                     "args": (mod, config_opt, str(choice), imid),
                 }
-                for choice in choices
+                for choice in possible
             ]
             markup += list(chunks(choice_btns, 2))
+        elif internal == "MultiChoice" and possible is not None:
+            selected = (
+                [str(x) for x in value]
+                if isinstance(value, (list, tuple))
+                else []
+            )
+            choice_btns = [
+                {
+                    "text": f"{'☑️' if str(choice) in selected else '⬜️'} {choice}",
+                    "callback": self.inline__multichoice,
+                    "args": (mod, config_opt, str(choice), imid),
+                }
+                for choice in possible
+            ]
+            markup += list(chunks(choice_btns, 2))
+        elif internal == "Series":
+            items = value if isinstance(value, (list, tuple)) else []
+            markup += list(
+                chunks(
+                    [
+                        {
+                            "text": f"❌ {item}",
+                            "callback": self.inline__series_del,
+                            "args": (mod, config_opt, idx, imid),
+                        }
+                        for idx, item in enumerate(items)
+                    ],
+                    1,
+                )
+            )
+            markup += [
+                [
+                    {
+                        "text": "➕ Add item",
+                        "input": "➕ Enter a new item to add",
+                        "handler": self.inline__series_add,
+                        "args": (mod, config_opt, imid),
+                    }
+                ]
+            ]
         elif internal == "Boolean" or isinstance(
             module.config.getdef(config_opt), bool
         ):
-            current = bool(module.config[config_opt])
+            current = bool(value)
             markup += [
                 [
                     {
@@ -344,13 +457,41 @@ class GeekConfigMod(loader.Module):
             await call.edit(text, reply_markup=markup)
 
     async def inline__configure(
-        self, call: Union[Message, CallbackQuery], mod: str
+        self, call: Union[Message, CallbackQuery], mod: str, folder: str = None
     ) -> None:  # noqa
         module = self._lookup(mod)
-        btns = []
+        loose = []
+        folders = {}
         if module is not None:
             mod = module.strings("name")
+            get_folder = getattr(module.config, "get_folder", lambda _: None)
             for param in module.config:
+                fld = get_folder(param)
+                if fld:
+                    folders.setdefault(fld, []).append(param)
+                else:
+                    loose.append(param)
+
+        btns = []
+        if folder is None:
+            for param in loose:
+                btns += [
+                    {
+                        "text": param,
+                        "callback": self.inline__configure_option,
+                        "args": (mod, param),
+                    }
+                ]
+            for fld in folders:
+                btns += [
+                    {
+                        "text": f"📁 {fld}",
+                        "callback": self.inline__configure,
+                        "args": (mod, fld),
+                    }
+                ]
+        else:
+            for param in folders.get(folder, []):
                 btns += [
                     {
                         "text": param,
@@ -359,13 +500,21 @@ class GeekConfigMod(loader.Module):
                     }
                 ]
 
+        back = (
+            {"text": "👈 Back", "callback": self.inline__global_config}
+            if folder is None
+            else {
+                "text": "👈 Back",
+                "callback": self.inline__configure,
+                "args": (mod,),
+            }
+        )
         markup = list(chunks(btns, 2)) + [
-            [
-                {"text": "👈 Back", "callback": self.inline__global_config},
-                {"text": "🚫 Close", "callback": self.inline__close},
-            ]
+            [back, {"text": "🚫 Close", "callback": self.inline__close}]
         ]
-        text = self.strings("configuring_mod").format(utils.escape_html(mod))
+        text = self.strings("configuring_mod").format(
+            utils.escape_html(f"{mod} → {folder}" if folder else mod)
+        )
 
         if isinstance(call, Message):
             await self.inline.form(text, reply_markup=markup, message=call)

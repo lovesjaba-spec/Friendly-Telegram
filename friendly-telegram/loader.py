@@ -171,6 +171,11 @@ class ModuleConfig(dict):
         entry = self._config.get(key)
         return getattr(entry, "validator", None) if entry is not None else None
 
+    def get_folder(self, key):
+        """Return the ConfigValue folder for a key, if any"""
+        entry = self._config.get(key)
+        return getattr(entry, "folder", None) if entry is not None else None
+
     def __getitem__(self, key):
         config = getattr(self, "_config", None)
         if config is not None and key in config:

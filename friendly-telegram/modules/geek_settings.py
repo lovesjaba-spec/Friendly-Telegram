@@ -35,7 +35,10 @@ class GeekSettingsMod(loader.Module):
         "no_cmd": "🔰 <b>Please, specify command to toggle NoNick for</b>",
         "cmd_nn": "🔰 <b>NoNick for </b><code>{}</code><b> is now {}</b>",
         "cmd404": "🔰 <b>Command not found</b>",
-        "inline_settings": "⚙️ <b>Here you can configure your GeekTG settings</b>",
+        "inline_settings": (
+            "⚙️ <b>GeekTG settings</b>\n"
+            "<b>Version:</b> <code>{}</code>   <b>Prefix:</b> <code>{}</code>"
+        ),
         "confirm_update": "🪂 <b>Please, confirm that you want to update. Your userbot will be restarted</b>",
         "confirm_restart": "🔄 <b>Please, confirm that you want to restart</b>",
         "_inline_doc": (
@@ -55,7 +58,10 @@ class GeekSettingsMod(loader.Module):
         "no_cmd": "🔰 <b>Укажите команду для переключения NoNick</b>",
         "cmd_nn": "🔰 <b>NoNick для </b><code>{}</code><b> теперь {}</b>",
         "cmd404": "🔰 <b>Команда не найдена</b>",
-        "inline_settings": "⚙️ <b>Здесь можно настроить параметры GeekTG</b>",
+        "inline_settings": (
+            "⚙️ <b>Настройки GeekTG</b>\n"
+            "<b>Версия:</b> <code>{}</code>   <b>Префикс:</b> <code>{}</code>"
+        ),
         "confirm_update": "🪂 <b>Подтвердите обновление. Юзербот будет перезапущен</b>",
         "confirm_restart": "🔄 <b>Подтвердите перезапуск</b>",
         "_cls_doc": "Расширенные настройки GeekTG",
@@ -283,7 +289,7 @@ class GeekSettingsMod(loader.Module):
             await call.answer("Configuration value saved!")
 
         await call.edit(
-            self.strings("inline_settings"), reply_markup=self._get_settings_markup()
+            self._settings_text(), reply_markup=self._get_settings_markup()
         )
 
     async def inline__close(self, call: CallbackQuery) -> None:
@@ -306,7 +312,8 @@ class GeekSettingsMod(loader.Module):
 
         await call.answer("You userbot is being updated...", show_alert=True)
         await call.delete()
-        m = await self._client.send_message("me", ".update")
+        prefix = utils.get_prefix(self._db)
+        m = await self._client.send_message("me", f"{prefix}update")
         await self.allmodules.commands["update"](m)
 
     async def inline__restart(
@@ -326,11 +333,34 @@ class GeekSettingsMod(loader.Module):
 
         await call.answer("You userbot is being restarted...", show_alert=True)
         await call.delete()
-        m = await self._client.send_message("me", ".restart")
+        prefix = utils.get_prefix(self._db)
+        m = await self._client.send_message("me", f"{prefix}restart")
         await self.allmodules.commands["restart"](m)
 
+    def _settings_text(self) -> str:
+        try:
+            ver = utils.get_git_info()[0]
+        except Exception:
+            ver = "?"
+
+        return self.strings("inline_settings").format(
+            utils.escape_html(str(ver)),
+            utils.escape_html(utils.get_prefix(self._db)),
+        )
+
+    def _config_module(self):
+        return next(
+            (
+                mod
+                for mod in self.allmodules.modules
+                if mod.strings("name") == "GeekConfig"
+                and hasattr(mod, "inline__global_config")
+            ),
+            None,
+        )
+
     def _get_settings_markup(self) -> list:
-        return [
+        markup = [
             [
                 (
                     {
@@ -398,14 +428,23 @@ class GeekSettingsMod(loader.Module):
                 },
                 {"text": "🪂 Update", "callback": self.inline__update, "args": (True,)},
             ],
-            [{"text": "😌 Close menu", "callback": self.inline__close}],
         ]
+
+        last = [{"text": "😌 Close menu", "callback": self.inline__close}]
+        cfg = self._config_module()
+        if cfg is not None:
+            last.insert(
+                0, {"text": "🎚 Config", "callback": cfg.inline__global_config}
+            )
+        markup.append(last)
+
+        return markup
 
     @loader.owner
     async def settingscmd(self, message: Message) -> None:
         """Show settings menu"""
         await self.inline.form(
-            self.strings("inline_settings"),
+            self._settings_text(),
             message=message,
             reply_markup=self._get_settings_markup(),
         )

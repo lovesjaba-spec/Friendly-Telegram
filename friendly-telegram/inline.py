@@ -80,13 +80,21 @@ DEFAULT_THUMB = (
     "https://github.com/GeekTG/Friendly-Telegram/raw/master/friendly-telegram/bot_avatar.png"  # noqa: E501
 )
 
-photo = io.BytesIO(requests.get(DEFAULT_THUMB).content)
-photo.name = "avatar.png"
+_avatar_cache = None
 
 
 def bot_avatar():
-    """Fresh BytesIO copy of the bot avatar — a BytesIO is consumed once sent"""
-    avatar = io.BytesIO(photo.getvalue())
+    """Fresh BytesIO copy of the bot avatar, fetched and cached on first use"""
+    global _avatar_cache
+
+    if _avatar_cache is None:
+        try:
+            _avatar_cache = requests.get(DEFAULT_THUMB, timeout=10).content
+        except Exception:
+            logger.warning("Could not fetch the bot avatar from GitHub")
+            _avatar_cache = b""
+
+    avatar = io.BytesIO(_avatar_cache)
     avatar.name = "avatar.png"
     return avatar
 
@@ -1187,6 +1195,24 @@ class InlineManager:
             reply_markup = []
 
         call = InlineCall(query)
+
+        # Wire edit/delete helpers from the form this callback belongs to, so
+        # `callback_handlers` (e.g. Heroku `data` buttons) get a usable `call`.
+        imid = getattr(query, "inline_message_id", None)
+        if imid:
+            for form_uid, form in self._forms.copy().items():
+                if form.get("inline_message_id") == imid:
+                    call.delete = functools.partial(
+                        delete, self=self, form=form, form_uid=form_uid
+                    )
+                    call.unload = functools.partial(
+                        unload, self=self, form_uid=form_uid
+                    )
+                    call.edit = functools.partial(
+                        edit, self=self, query=query, form=form, form_uid=form_uid
+                    )
+                    call.form = {"id": form_uid, **form}
+                    break
 
         # First, dispatch all registered callback handlers
         for mod in self._allmodules.modules:

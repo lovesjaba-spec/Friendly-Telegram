@@ -142,6 +142,9 @@ class LoaderMod(loader.Module):
         "no_class": "⚠️ <b>What class needs to be unloaded?</b>",
         "unloaded": "📤 <b>Module unloaded</b>",
         "not_unloaded": "🚫 <b>Module not unloaded</b>",
+        "core_module": (
+            "🛡 <b>This is a core module — it cannot be unloaded</b>"
+        ),
         "requirements_failed": "🚫 <b>Requirements installation failed</b>",
         "requirements_installing": "🔄 <b>Installing requirements...</b>",
         "requirements_restart": "🔄 <b>Requirements installed, restart required</b>",
@@ -191,6 +194,9 @@ class LoaderMod(loader.Module):
         "no_class": "⚠️ <b>Какой класс нужно выгрузить?</b>",
         "unloaded": "📤 <b>Модуль выгружен</b>",
         "not_unloaded": "🚫 <b>Модуль не выгружен</b>",
+        "core_module": (
+            "🛡 <b>Это core-модуль — его нельзя выгрузить</b>"
+        ),
         "requirements_failed": "🚫 <b>Не удалось установить зависимости</b>",
         "requirements_installing": "🔄 <b>Устанавливаю зависимости...</b>",
         "requirements_restart": "🔄 <b>Зависимости установлены, требуется перезапуск</b>",
@@ -741,6 +747,20 @@ class LoaderMod(loader.Module):
         if not args:
             await utils.answer(message, self.strings("no_class", message))
             return
+
+        core_dir = os.path.join(utils.get_base_dir(), "modules")
+        for module in self.allmodules.modules:
+            names = {
+                module.__class__.__name__.lower(),
+                str(getattr(module, "name", "")).lower(),
+            }
+            if args.lower() not in names:
+                continue
+
+            stem = module.__module__.rsplit(".", 1)[-1]
+            if os.path.isfile(os.path.join(core_dir, f"{stem}.py")):
+                await utils.answer(message, self.strings("core_module", message))
+                return
 
         worked = self.allmodules.unload_module(
             args.capitalize()
