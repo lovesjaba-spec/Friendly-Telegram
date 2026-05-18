@@ -472,3 +472,18 @@ def test_update_notification_falls_back_without_inline(monkeypatch, tmp_path):
 
     assert len(sent) == 1
     assert sent[0][0] == 777
+
+
+def test_geek_info_build_message_tolerates_non_string_custom(monkeypatch, tmp_path):
+    geek_info = import_ft("modules.geek_info", monkeypatch, tmp_path)
+
+    mod = geek_info.GeekInfoMod()
+    mod._db = _FakeDB()
+    mod._me = SimpleNamespace(id=1, first_name="Jaba", last_name=None)
+    mod.strings = lambda key, *args: type(mod).strings[key]
+    mod.config = {"custom_message": True}
+
+    text = mod.build_message()
+
+    assert isinstance(text, str)
+    assert "GeekTG Userbot" in text

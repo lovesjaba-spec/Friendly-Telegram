@@ -114,11 +114,13 @@ class GeekInfoMod(loader.Module):
             upd = ""
         ver, gitlink = utils.get_git_info()
         try:
-            return (
-                self.config["custom_message"]
-                if self.config["custom_message"]
+            custom = self.config["custom_message"]
+            template = (
+                custom
+                if isinstance(custom, str) and custom
                 else self.strings("default_message")
-            ).format(
+            )
+            return template.format(
                 owner=f'<a href="tg://user?id={self._me.id}">{get_display_name(self._me)}</a>',
                 version=utils.get_version_raw(),
                 build=f'<a href="{gitlink}">{ver[:8] or "Unknown"}</a>',
