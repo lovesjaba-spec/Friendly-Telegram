@@ -1,14 +1,19 @@
 import asyncio
 import importlib
+import pathlib
 import sys
 import time
 from types import SimpleNamespace
+
+ROOT = pathlib.Path(__file__).resolve().parent.parent
 
 
 def import_ft(name, monkeypatch, tmp_path):
     if "--root" not in sys.argv:
         sys.argv.append("--root")
     monkeypatch.chdir(tmp_path)
+    if str(ROOT) not in sys.path:
+        sys.path.insert(0, str(ROOT))
     if name != "main":
         importlib.import_module("friendly-telegram.main")
     return importlib.import_module(f"friendly-telegram.{name}")
