@@ -300,3 +300,89 @@ def test_sensitive_restore_commands_are_owner_only(monkeypatch, tmp_path):
     assert backuper.BackuperMod.restoredbcmd.security == security.OWNER
     assert backuper.BackuperMod.restoremodscmd.security == security.OWNER
     assert backuper.BackuperMod.restorenotescmd.security == security.OWNER
+
+
+class _FakeDB:
+    def __init__(self):
+        self.store = {}
+
+    def get(self, namespace, key, default=None):
+        return self.store.get((namespace, key), default)
+
+    def set(self, namespace, key, value):
+        self.store[(namespace, key)] = value
+
+
+def _prepare_updater(monkeypatch, tmp_path):
+    updater = import_ft("modules.updater", monkeypatch, tmp_path)
+    monkeypatch.delenv("DYNO", raising=False)
+
+    mod = updater.UpdaterMod()
+    mod.strings = lambda key, *args: key
+    mod._db = _FakeDB()
+    mod._me = SimpleNamespace(id=777)
+
+    commit = SimpleNamespace(hexsha="deadbeef", summary="Shiny new commit")
+
+    async def fake_changelog():
+        return [commit]
+
+    mod.get_changelog = fake_changelog
+    return mod
+
+
+def test_update_notification_uses_bot_dialog(monkeypatch, tmp_path):
+    mod = _prepare_updater(monkeypatch, tmp_path)
+
+    bot_sent = []
+    markups = []
+    client_sent = []
+
+    async def fake_bot_send(chat_id, text, **kwargs):
+        bot_sent.append((chat_id, text, kwargs))
+
+    def fake_generate_markup(buttons, *args):
+        markups.append(buttons)
+        return "MARKUP"
+
+    async def fake_client_send(*args, **kwargs):
+        client_sent.append(args)
+
+    mod.inline = SimpleNamespace(
+        init_complete=True,
+        bot=SimpleNamespace(send_message=fake_bot_send),
+        _generate_markup=fake_generate_markup,
+    )
+    mod._client = SimpleNamespace(send_message=fake_client_send)
+
+    asyncio.run(mod._notify_if_outdated())
+
+    assert not client_sent
+    assert len(bot_sent) == 1
+    chat_id, _, kwargs = bot_sent[0]
+    assert chat_id == 777
+    assert kwargs["reply_markup"] == "MARKUP"
+    buttons = markups[0][0]
+    assert [button["text"] for button in buttons] == [
+        "update_btn",
+        "update_close_btn",
+    ]
+    assert buttons[0]["callback"] == mod.inline__update
+    assert buttons[1]["callback"] == mod.inline__close
+
+
+def test_update_notification_falls_back_without_inline(monkeypatch, tmp_path):
+    mod = _prepare_updater(monkeypatch, tmp_path)
+
+    sent = []
+
+    async def fake_send_message(*args, **kwargs):
+        sent.append(args)
+
+    mod.inline = SimpleNamespace(init_complete=False)
+    mod._client = SimpleNamespace(send_message=fake_send_message)
+
+    asyncio.run(mod._notify_if_outdated())
+
+    assert len(sent) == 1
+    assert sent[0][0] == 777

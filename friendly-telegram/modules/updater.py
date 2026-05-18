@@ -68,6 +68,9 @@ class UpdaterMod(loader.Module):
             "<blockquote>{}</blockquote>\n"
             "<i>Run </i><code>{prefix}update</code><i> to install it</i>"
         ),
+        "update_btn": "🪂 Install update",
+        "update_close_btn": "🚫 Close",
+        "update_started_alert": "🪂 The userbot is being updated...",
         "check_update_doc": "Check the repo for new commits in the background",
         "check_interval_doc": "How often (in hours) to check for updates",
         "heroku_warning": (
@@ -111,6 +114,9 @@ class UpdaterMod(loader.Module):
             "<blockquote>{}</blockquote>\n"
             "<i>Выполните </i><code>{prefix}update</code><i> для установки</i>"
         ),
+        "update_btn": "🪂 Установить обновление",
+        "update_close_btn": "🚫 Закрыть",
+        "update_started_alert": "🪂 Юзербот обновляется...",
         "check_update_doc": "Фоновая проверка репозитория на новые коммиты",
         "check_interval_doc": "Как часто (в часах) проверять обновления",
         "heroku_warning": (
@@ -460,17 +466,51 @@ class UpdaterMod(loader.Module):
 
         self._db.set(__name__, "last_update_notified", latest)
 
-        await self._client.send_message(
-            self._me.id,
-            self.strings("update_notification").format(
-                len(changelog),
-                "\n".join(
-                    f"▫️ {utils.escape_html(commit.summary)}"
-                    for commit in changelog[:10]
-                ),
-                prefix=utils.get_prefix(self._db),
+        text = self.strings("update_notification").format(
+            len(changelog),
+            "\n".join(
+                f"▫️ {utils.escape_html(commit.summary)}"
+                for commit in changelog[:10]
             ),
+            prefix=utils.get_prefix(self._db),
         )
+
+        if getattr(self.inline, "init_complete", False):
+            markup = self.inline._generate_markup(
+                [
+                    [
+                        {
+                            "text": self.strings("update_btn"),
+                            "callback": self.inline__update,
+                        },
+                        {
+                            "text": self.strings("update_close_btn"),
+                            "callback": self.inline__close,
+                        },
+                    ]
+                ]
+            )
+            await self.inline.bot.send_message(
+                self._me.id, text, reply_markup=markup
+            )
+        else:
+            await self._client.send_message(self._me.id, text)
+
+    async def inline__close(self, call) -> None:
+        try:
+            await call.message.delete()
+        except Exception:
+            logger.debug("Could not delete update notification", exc_info=True)
+
+    async def inline__update(self, call) -> None:
+        await call.answer(self.strings("update_started_alert"), show_alert=True)
+        try:
+            await call.message.delete()
+        except Exception:
+            logger.debug("Could not delete update notification", exc_info=True)
+        prefix = utils.get_prefix(self._db)
+        m = await self._client.send_message("me", f"{prefix}update")
+        await self.allmodules.commands["update"](m)
 
     async def update_complete(self, client):
         logger.debug("Self update successful! Edit message")
