@@ -257,6 +257,92 @@ def test_get_phones_accepts_token_without_session(monkeypatch, tmp_path):
     assert list(authtoken.values()) == ["session-token"]
 
 
+def test_new_phone_session_is_stored_by_account_id(monkeypatch, tmp_path):
+    main = import_ft("main", monkeypatch, tmp_path)
+    saved_sessions = []
+    clients = []
+
+    arguments = SimpleNamespace(
+        data_root=str(tmp_path),
+        default_app=False,
+        hosting=False,
+        no_auth=False,
+        port=12345,
+        setup=False,
+        use_inline=False,
+        web=False,
+        web_only=False,
+    )
+
+    class OldSession:
+        def __init__(self, path):
+            self.dc_id = 2
+            self.server_address = "dc.example"
+            self.port = 443
+            self.auth_key = "auth-key"
+            self.filename = f"{path}.session"
+            pathlib.Path(self.filename).write_text("phone session")
+            self.closed = False
+
+        def close(self):
+            self.closed = True
+
+    class NewSession:
+        def __init__(self, path):
+            self.path = path
+            self.filename = f"{path}.session"
+            saved_sessions.append(self)
+
+        def set_dc(self, dc_id, server_address, port):
+            self.dc = (dc_id, server_address, port)
+
+        def save(self):
+            self.saved = True
+            pathlib.Path(self.filename).write_text("account session")
+
+    class Client:
+        def __init__(self, session, *args, **kwargs):
+            self.initial_session = session
+            self.session = OldSession(session)
+            clients.append(self)
+
+        def start(self):
+            return self
+
+        async def get_me(self):
+            return SimpleNamespace(id=987654321)
+
+    async def amain_wrapper(*args, **kwargs):
+        return None
+
+    monkeypatch.setattr(main, "parse_arguments", lambda: arguments)
+    monkeypatch.setattr(main, "get_phones", lambda args: ({}, {}))
+    monkeypatch.setattr(
+        main,
+        "get_api_token",
+        lambda *args: SimpleNamespace(ID=1, HASH="hash"),
+    )
+    monkeypatch.setattr(main, "get_proxy", lambda args: (None, None))
+    monkeypatch.setattr(main, "save_config_key", lambda *args: None)
+    monkeypatch.setattr(main, "web_available", False)
+    monkeypatch.setattr(main, "TelegramClient", Client)
+    monkeypatch.setattr(main, "SQLiteSession", NewSession)
+    monkeypatch.setattr(main, "amain_wrapper", amain_wrapper)
+    monkeypatch.setattr("builtins.input", lambda prompt: "+79990000000")
+
+    main.main()
+
+    assert clients[0].initial_session == str(
+        tmp_path / "friendly-telegram-+79990000000"
+    )
+    assert saved_sessions[0].path == str(tmp_path / "friendly-telegram-987654321")
+    assert saved_sessions[0].dc == (2, "dc.example", 443)
+    assert saved_sessions[0].auth_key == "auth-key"
+    assert saved_sessions[0].saved
+    assert clients[0].session is saved_sessions[0]
+    assert not pathlib.Path(f"{clients[0].initial_session}.session").exists()
+
+
 def test_loader_importerror_without_requires_returns_false(monkeypatch, tmp_path):
     loader_mod = import_ft("modules.loader", monkeypatch, tmp_path)
     mod = loader_mod.LoaderMod()

@@ -281,6 +281,40 @@ def get_proxy(arguments):
     return None, ConnectionTcpFull
 
 
+def get_session_path(data_root, account_id):
+    return os.path.join(data_root or BASE_DIR, f"friendly-telegram-{account_id}")
+
+
+async def save_client_session(client, data_root):
+    account_id = str((await client.get_me()).id)
+    session = client.session
+    old_filename = getattr(session, "filename", None)
+    new_path = get_session_path(data_root, account_id)
+    new_filename = f"{new_path}.session"
+
+    if old_filename == new_filename:
+        return account_id
+
+    new_session = SQLiteSession(new_path)
+    new_session.set_dc(session.dc_id, session.server_address, session.port)
+    new_session.auth_key = session.auth_key
+    new_session.save()
+
+    close = getattr(session, "close", None)
+    if callable(close):
+        close()
+
+    client.session = new_session
+
+    if old_filename and old_filename != new_session.filename:
+        try:
+            os.remove(old_filename)
+        except FileNotFoundError:
+            pass
+
+    return account_id
+
+
 def sigterm(app, signum, handler):  # skipcq: PYL-W0613
     sys.exit(143)  # SIGTERM + 128
 
@@ -402,21 +436,9 @@ def main():  # noqa: C901
             loop.run_until_complete(web.wait_for_clients_setup())
             clients = web.clients
             for client in clients:
-                session = SQLiteSession(
-                    os.path.join(
-                        arguments.data_root or BASE_DIR,
-                        f"friendly-telegram-+{'X' * (len(client.phone) - 5)}{client.phone[-4:]}", # skipcq: FLK-E501
-                    )
+                loop.run_until_complete(
+                    save_client_session(client, arguments.data_root)
                 )
-
-                session.set_dc(
-                    client.session.dc_id,
-                    client.session.server_address,
-                    client.session.port,
-                )
-                session.auth_key = client.session.auth_key
-                session.save()
-                client.session = session
         else:
             phone = input("Please enter your phone: ")
             phones = {phone.split(":", maxsplit=1)[0]: phone}
@@ -438,6 +460,7 @@ def main():  # noqa: C901
             )
 
             client.start()
+            loop.run_until_complete(save_client_session(client, arguments.data_root))
             client.phone = phone
 
             clients.append(client)
