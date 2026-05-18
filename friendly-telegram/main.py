@@ -118,21 +118,13 @@ def gen_port():
     if port:
         return port
 
-    # If we didn't get port from config, generate new one
-    # First, try to randomly get port
-    port = random.randint(1024, 65536)
+    # If we didn't get port from config, generate new free port.
+    while True:
+        port = random.randint(1024, 65535)
 
-    # Then ensure it's free
-    while (
-        socket.socket(socket.AF_INET, socket.SOCK_STREAM).connect_ex(
-            ("localhost", port)
-        )
-        == 0
-    ):
-        # Until we find the free port, generate new one
-        port = random.randint(1024, 65536)
-
-    return port
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            if sock.connect_ex(("localhost", port)) != 0:
+                return port
 
 
 def save_db_type(use_file_db):
@@ -229,9 +221,15 @@ def get_phones(arguments):
 
     authtoken = {}
     if arguments.tokens:
-        for token in arguments.tokens:
-            phone = sorted(filter(lambda phone: ":" not in phone, phones.values()))[0]
-            del phones[phone]
+        available_phones = sorted(
+            phone for phone in phones.values() if ":" not in phone
+        )
+        for index, token in enumerate(arguments.tokens):
+            if available_phones:
+                phone = available_phones.pop(0)
+                del phones[phone]
+            else:
+                phone = f"token-{index}"
             authtoken[phone] = token
 
     return phones, authtoken

@@ -153,22 +153,29 @@ def apply_telethon_protection() -> None:
 
     original_call = UserMethods._call
 
-    async def _guarded_call(self, sender, request, *args, **kwargs):
-        requests = (
-            request
-            if telethon_utils.is_list_like(request)
-            else (request,)
-        )
+    def _blocked_request_name(item):
+        if type(item).__name__ in BLOCKED_REQUESTS:
+            return type(item).__name__
 
-        for item in requests:
-            if type(item).__name__ in BLOCKED_REQUESTS:
-                logger.warning(
-                    "Blocked a forbidden Telegram request: %s",
-                    type(item).__name__,
-                )
-                raise ForbiddenRequestError(
-                    f"{type(item).__name__} is permanently blocked by GeekTG"
-                )
+        if telethon_utils.is_list_like(item):
+            for nested in item:
+                blocked = _blocked_request_name(nested)
+                if blocked:
+                    return blocked
+
+        query = getattr(item, "query", None)
+        if query is not None and query is not item:
+            return _blocked_request_name(query)
+
+        return None
+
+    async def _guarded_call(self, sender, request, *args, **kwargs):
+        blocked = _blocked_request_name(request)
+        if blocked:
+            logger.warning("Blocked a forbidden Telegram request: %s", blocked)
+            raise ForbiddenRequestError(
+                f"{blocked} is permanently blocked by GeekTG"
+            )
 
         return await original_call(self, sender, request, *args, **kwargs)
 

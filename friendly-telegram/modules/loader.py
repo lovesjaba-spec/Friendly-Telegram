@@ -484,10 +484,14 @@ class LoaderMod(loader.Module):
                     exc_info=True,
                 )
                 # Let's try to reinstall dependencies
+                requirements_match = VALID_PIP_PACKAGES.search(doc)
+                if requirements_match is None:
+                    raise
+
                 requirements = list(
                     filter(
                         lambda x: x and x[0] not in ("-", "_", "."),
-                        map(str.strip, VALID_PIP_PACKAGES.search(doc)[1].split(" ")),
+                        map(str.strip, requirements_match[1].split(" ")),
                     )
                 )
 

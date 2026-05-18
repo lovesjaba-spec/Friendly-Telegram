@@ -334,9 +334,9 @@ async def answer(message, response, **kwargs):
                 return form
 
     if (
-        await message.client.is_bot()
-        and isinstance(response, str)
+        isinstance(response, str)
         and len(response) > 4096
+        and await message.client.is_bot()
     ):
         kwargs.setdefault("asfile", True)
 
@@ -403,7 +403,7 @@ async def answer(message, response, **kwargs):
             response.name = name
 
         if message.media is not None and edit:
-            await message.edit(file=response, **kwargs)
+            ret = (await message.edit(file=response, **kwargs),)
         else:
             kwargs.setdefault(
                 "reply_to",

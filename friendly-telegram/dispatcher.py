@@ -74,8 +74,6 @@ class CommandDispatcher:
             self._ratelimit_storage_user[message.sender_id] = user
             if user > self._ratelimit_max_user:
                 ret = False
-            else:
-                self._ratelimit_storage_chat[message.chat_id] = chat
 
             _decrement_ratelimit(
                 self._ratelimit_max_user * severity,
@@ -89,6 +87,7 @@ class CommandDispatcher:
             )
 
         chat += severity
+        self._ratelimit_storage_chat[message.chat_id] = chat
 
         if chat > self._ratelimit_max_chat:
             ret = False
