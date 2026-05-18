@@ -22,6 +22,9 @@ config.ini
 config-*.json
 config.json
 *cache*.json
+CLAUDE.md
+.claude/
+.local/
 *.png
 *.jpg
 *.jpeg
