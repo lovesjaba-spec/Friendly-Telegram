@@ -199,12 +199,25 @@ class mQuotesMod(loader.Module):
                 await msg.edit("<b>Update error</b>")
             return
 
+        if resp.status_code != 200:
+            await msg.edit(
+                f"🚫 <b>Quote API error ({resp.status_code}), try again later</b>"
+            )
+            return
+
         await msg.edit("<b>Sending...</b>")
 
         image = io.BytesIO()
         image.name = "quote.webp"
 
-        PIL.Image.open(io.BytesIO(resp.content)).save(image, "WEBP")
+        try:
+            PIL.Image.open(io.BytesIO(resp.content)).save(image, "WEBP")
+        except Exception:
+            await msg.edit(
+                "🚫 <b>Quote API returned an invalid response, try again later</b>"
+            )
+            return
+
         image.seek(0)
 
         await self.client.send_message(

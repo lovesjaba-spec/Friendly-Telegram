@@ -300,6 +300,14 @@ class LoaderMod(loader.Module):
     async def _get_modules_to_load(self):
         todo = await self.get_repo_list(self._db.get(__name__, "chosen_preset", None))
         todo = todo.difference(self._db.get(__name__, "unloaded_modules", []))
+
+        core_dir = os.path.join(utils.get_base_dir(), "modules")
+        todo = {
+            mod
+            for mod in todo
+            if not os.path.isfile(os.path.join(core_dir, f"{mod}.py"))
+        }
+
         todo.update(self._db.get(__name__, "loaded_modules", []))
         return todo
 
@@ -413,7 +421,7 @@ class LoaderMod(loader.Module):
                 r"# ?scope: ?geektg_min ([0-9]+\.[0-9]+\.[0-9]+)", doc
             ).group(1)
             ver_ = tuple(map(int, ver.split(".")))
-            if main.__version__ < ver_:
+            if getattr(main, "__version__", (0, 0, 0)) < ver_:
                 await utils.answer(
                     message,
                     self.strings("version_incompatible").format(

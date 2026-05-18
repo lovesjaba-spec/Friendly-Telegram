@@ -176,7 +176,8 @@ def rand(length):
 
 def get_version_raw():
     """Get the version of the userbot"""
-    return ".".join(list(map(str, list(main.__version__))))
+    version = getattr(main, "__version__", (0, 0, 0))
+    return ".".join(map(str, version))
 
 
 def get_git_info():
