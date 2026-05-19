@@ -474,6 +474,15 @@ def test_update_notification_falls_back_without_inline(monkeypatch, tmp_path):
     assert sent[0][0] == 777
 
 
+def test_utils_remove_html_strips_tags(monkeypatch, tmp_path):
+    utils = import_ft("utils", monkeypatch, tmp_path)
+
+    assert utils.remove_html("<b>bold</b> and <code>code</code>") == "bold and code"
+    assert utils.remove_html("<a href='t.me'>link</a>") == "link"
+    assert utils.remove_html("plain") == "plain"
+    assert utils.remove_html("a < b & c", escape=True) == "a &lt; b &amp; c"
+
+
 def test_geek_info_build_message_tolerates_non_string_custom(monkeypatch, tmp_path):
     geek_info = import_ft("modules.geek_info", monkeypatch, tmp_path)
 

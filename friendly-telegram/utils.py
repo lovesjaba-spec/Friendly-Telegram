@@ -208,6 +208,26 @@ def escape_quotes(text):
     return escape_html(text).replace('"', "&quot;")
 
 
+def remove_html(text, escape=False, keep_emojis=False):
+    """Remove Telegram HTML tags from text, optionally escaping the result"""
+    return (escape_html if escape else str)(
+        re.sub(
+            (
+                r"(<\/?a(?!.*?emoji.*?).*?>|<\/?b>|<\/?i>|<\/?u>|<\/?strong>|"
+                r"<\/?em>|<\/?code>|<\/?strike>|<\/?del>|<\/?pre.*?>|"
+                r"<\/?blockquote.*?>)"
+            )
+            if keep_emojis
+            else (
+                r"(<\/?a.*?>|<\/?b>|<\/?i>|<\/?u>|<\/?strong>|<\/?em>|<\/?code>|"
+                r"<\/?strike>|<\/?del>|<\/?pre.*?>|<\/?blockquote.*?>)"
+            ),
+            "",
+            str(text),
+        )
+    )
+
+
 def get_base_dir():
     """Get directory of this file"""
     return get_dir(__main__.__file__)
