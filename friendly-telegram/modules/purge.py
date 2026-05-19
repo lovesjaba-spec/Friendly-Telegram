@@ -20,6 +20,15 @@ class PurgeMod(loader.Module):
         "delete_what": "<b>What message should be deleted?</b>",
     }
 
+    strings_ru = {
+        "from_where": "<b>Какие сообщения нужно удалить?</b>",
+        "not_supergroup_bot": "<b>Очистка работает только в супергруппах</b>",
+        "delete_what": "<b>Какое сообщение удалить?</b>",
+        "_cls_doc": "Удаляет твои сообщения",
+        "_cmd_doc_purge": "Удалить сообщения начиная с того, на которое отвечаешь",
+        "_cmd_doc_del": "Удалить сообщение, на которое отвечаешь",
+    }
+
     @loader.group_admin_delete_messages
     @loader.ratelimit
     async def purgecmd(self, message):

@@ -64,7 +64,43 @@ MODULE_PATH = "https://quotes.mishase.dev/f/module.py"
 class mQuotesMod(loader.Module):
     """Quote a message using Mishase Quotes API"""
 
-    strings = {"name": "Quotes"}
+    strings = {
+        "name": "Quotes",
+        "no_reply": "No reply message",
+        "processing": "<b>Processing...</b>",
+        "processing_n": "<b>Processing {}/{}</b>",
+        "no_messages": "No messages to quote",
+        "api_processing": "<b>API Processing...</b>",
+        "need_update": "<b>Quote API requires a module update</b>",
+        "api_error": "🚫 <b>Quote API error ({}), try again later</b>",
+        "sending": "<b>Sending...</b>",
+        "invalid_response": (
+            "🚫 <b>Quote API returned an invalid response, try again later</b>"
+        ),
+        "incorrect_args": "Incorrect args",
+        "user_not_found": "User not found",
+    }
+
+    strings_ru = {
+        "no_reply": "Нет сообщения для цитирования",
+        "processing": "<b>Обработка...</b>",
+        "processing_n": "<b>Обработка {}/{}</b>",
+        "no_messages": "Нет сообщений для цитирования",
+        "api_processing": "<b>Обработка через API...</b>",
+        "need_update": "<b>Quote API требует обновления модуля</b>",
+        "api_error": "🚫 <b>Ошибка Quote API ({}), попробуй позже</b>",
+        "sending": "<b>Отправка...</b>",
+        "invalid_response": (
+            "🚫 <b>Quote API вернул некорректный ответ, попробуй позже</b>"
+        ),
+        "incorrect_args": "Неверные аргументы",
+        "user_not_found": "Пользователь не найден",
+        "_cls_doc": "Цитирование сообщения через Mishase Quotes API",
+        "_cmd_doc_quote": "Процитировать сообщение. Аргументы: ?<кол-во> ?file",
+        "_cmd_doc_fquote": (
+            "Поддельная цитата. Аргументы: @<username>/<id>/<реплай> <текст>"
+        ),
+    }
 
     def __init__(self):
         self.config = loader.ModuleConfig(
@@ -114,7 +150,7 @@ class mQuotesMod(loader.Module):
         reply = await msg.get_reply_message()
 
         if not reply:
-            return await msg.edit("No reply message")
+            return await msg.edit(self.strings("no_reply", msg))
 
         if not msg.out:
             msg = await msg.reply("_")
@@ -134,7 +170,7 @@ class mQuotesMod(loader.Module):
         messagePacker = MessagePacker(self.client)
 
         if count == 1:
-            await msg.edit("<b>Processing...</b>")
+            await msg.edit(self.strings("processing", msg))
             await messagePacker.add(reply)
         if count > 1:
             it = self.client.iter_messages(
@@ -147,14 +183,14 @@ class mQuotesMod(loader.Module):
 
             i = 1
             async for message in it:
-                await msg.edit(f"<b>Processing {i}/{count}</b>")
+                await msg.edit(self.strings("processing_n", msg).format(i, count))
                 i += 1
                 await messagePacker.add(message)
 
         messages = messagePacker.messages
 
         if not messages:
-            return await msg.edit("No messages to quote")
+            return await msg.edit(self.strings("no_messages", msg))
 
         files = []
         for f in messagePacker.files.values():
@@ -163,7 +199,7 @@ class mQuotesMod(loader.Module):
         if not files:
             files.append(("files", bytearray()))
 
-        await msg.edit("<b>API Processing...</b>")
+        await msg.edit(self.strings("api_processing", msg))
 
         resp = await ftgUtils.run_sync(
             requests.post,
@@ -193,16 +229,14 @@ class mQuotesMod(loader.Module):
         )
 
         if resp.status_code == 418:
-            await msg.edit("<b>Quote API requires a module update</b>")
+            await msg.edit(self.strings("need_update", msg))
             return
 
         if resp.status_code != 200:
-            await msg.edit(
-                f"🚫 <b>Quote API error ({resp.status_code}), try again later</b>"
-            )
+            await msg.edit(self.strings("api_error", msg).format(resp.status_code))
             return
 
-        await msg.edit("<b>Sending...</b>")
+        await msg.edit(self.strings("sending", msg))
 
         image = io.BytesIO()
         image.name = "quote.webp"
@@ -210,9 +244,7 @@ class mQuotesMod(loader.Module):
         try:
             Image.open(io.BytesIO(resp.content)).save(image, "WEBP")
         except Exception:
-            await msg.edit(
-                "🚫 <b>Quote API returned an invalid response, try again later</b>"
-            )
+            await msg.edit(self.strings("invalid_response", msg))
             return
 
         image.seek(0)
@@ -241,12 +273,12 @@ class mQuotesMod(loader.Module):
             user = reply.sender_id
             text = args
         else:
-            return await msg.edit("Incorrect args")
+            return await msg.edit(self.strings("incorrect_args", msg))
 
         try:
             uid = (await self.client.get_entity(user)).id
         except Exception:
-            return await msg.edit("User not found")
+            return await msg.edit(self.strings("user_not_found", msg))
 
         async def getMessage():
             return Message(0, uid, message=text)

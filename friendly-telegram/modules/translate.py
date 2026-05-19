@@ -15,7 +15,27 @@ from .. import loader, utils
 class TranslatorMod(loader.Module):
     """Translator Module"""
 
-    strings = {"name": "Translate"}
+    strings = {
+        "name": "Translate",
+        "supported_langs": "🌐 <b>Supported languages:</b>\n<code>{}</code>",
+        "nothing_to_translate": "🚫 <b>Nothing to translate</b>",
+        "translation_failed": "🚫 <b>Translation failed:</b> <code>{}</code>",
+        "result": "🌐 <b>[auto ➜ {}]</b>\n{}",
+        "unblock_bot": "<code>Unblock @YTranslateBot</code>",
+    }
+
+    strings_ru = {
+        "supported_langs": "🌐 <b>Поддерживаемые языки:</b>\n<code>{}</code>",
+        "nothing_to_translate": "🚫 <b>Нечего переводить</b>",
+        "translation_failed": "🚫 <b>Не удалось перевести:</b> <code>{}</code>",
+        "unblock_bot": "<code>Разблокируй @YTranslateBot</code>",
+        "_cls_doc": "Модуль-переводчик",
+        "_cmd_doc_gtrsl": (
+            "<язык> <текст> или реплай с <язык> - перевести текст (Google)\n"
+            ".gtrsl langs - список поддерживаемых языков"
+        ),
+        "_cmd_doc_translate": "Перевести текст через Yandex Translate",
+    }
 
     async def gtrslcmd(self, message):
         """<lang> <text> or reply with <lang> - translate text (Google)
@@ -27,9 +47,9 @@ class TranslatorMod(loader.Module):
             langs = GoogleTranslator().get_supported_languages(as_dict=True)
             return await utils.answer(
                 message,
-                "🌐 <b>Supported languages:</b>\n<code>"
-                + ", ".join(sorted(langs.values()))
-                + "</code>",
+                self.strings("supported_langs", message).format(
+                    ", ".join(sorted(langs.values()))
+                ),
             )
 
         dest = "en"
@@ -48,7 +68,9 @@ class TranslatorMod(loader.Module):
                 text = tokens[0]
 
         if not text:
-            return await utils.answer(message, "🚫 <b>Nothing to translate</b>")
+            return await utils.answer(
+                message, self.strings("nothing_to_translate", message)
+            )
 
         try:
             result = await utils.run_sync(
@@ -57,15 +79,16 @@ class TranslatorMod(loader.Module):
         except Exception as e:
             return await utils.answer(
                 message,
-                "🚫 <b>Translation failed:</b> <code>"
-                + utils.escape_html(str(e))
-                + "</code>",
+                self.strings("translation_failed", message).format(
+                    utils.escape_html(str(e))
+                ),
             )
 
         await utils.answer(
             message,
-            f"🌐 <b>[auto ➜ {utils.escape_html(dest)}]</b>\n"
-            + utils.escape_html(result or ""),
+            self.strings("result", message).format(
+                utils.escape_html(dest), utils.escape_html(result or "")
+            ),
         )
 
     @loader.unrestricted
@@ -86,7 +109,7 @@ class TranslatorMod(loader.Module):
                 response = await response
                 await mm.delete()
             except YouBlockedUserError:
-                await message.edit("<code>Unblock @YTranslateBot</code>")
+                await message.edit(self.strings("unblock_bot", message))
                 return
             await message.edit(str(response.text).split(": ", 1)[1])
             await message.client(
