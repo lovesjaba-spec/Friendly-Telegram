@@ -384,6 +384,8 @@ class CommandDispatcher:
         """Handle all incoming messages"""
         logging.debug("Incoming message!")
         message = utils.censor(getattr(event, "message", event))
+        if not isinstance(message, types.Message):
+            return
         blacklist_chats = self._db.get(main.__name__, "blacklist_chats", [])
         whitelist_chats = self._db.get(main.__name__, "whitelist_chats", [])
         whitelist_modules = self._db.get(main.__name__, "whitelist_modules", [])

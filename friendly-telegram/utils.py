@@ -39,7 +39,10 @@ from telethon.tl.types import (
     MessageEntityBlockquote,
     User,
     MessageMediaWebPage,
+    InputPeerNotifySettings,
+    InputNotifyPeer,
 )
+from telethon.tl.functions.account import UpdateNotifySettingsRequest
 
 from . import __main__
 from . import main
@@ -226,6 +229,33 @@ def remove_html(text, escape=False, keep_emojis=False):
             str(text),
         )
     )
+
+
+async def dnd(client, peer, archive=True):
+    """Mute notifications for a peer and optionally archive it (Hikka/Heroku-compat)"""
+    try:
+        entity = await client.get_input_entity(peer)
+    except Exception:
+        return False
+    try:
+        await client(
+            UpdateNotifySettingsRequest(
+                peer=InputNotifyPeer(peer=entity),
+                settings=InputPeerNotifySettings(
+                    show_previews=False,
+                    silent=True,
+                    mute_until=2**31 - 1,
+                ),
+            )
+        )
+    except Exception:
+        pass
+    if archive:
+        try:
+            await client.edit_folder(entity, folder=1)
+        except Exception:
+            pass
+    return True
 
 
 def get_base_dir():

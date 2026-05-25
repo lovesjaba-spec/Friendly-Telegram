@@ -69,6 +69,34 @@ def test_chat_ratelimit_accumulates(monkeypatch, tmp_path):
     assert asyncio.run(run()) == (True, False)
 
 
+def test_handle_incoming_skips_non_message_events(monkeypatch, tmp_path):
+    dispatcher = import_ft("dispatcher", monkeypatch, tmp_path)
+
+    class DB:
+        def get(self, owner, key, default=None):
+            return default
+
+    called = []
+
+    class StubMod:
+        strings = {"name": "Stub"}
+        __module__ = "stubmod"
+
+        async def watcher(self, message):
+            called.append(message)
+
+    mod = StubMod()
+    modules = SimpleNamespace(watchers=[mod.watcher])
+    obj = dispatcher.CommandDispatcher(modules, DB())
+
+    class ChatActionEvent:
+        chat_id = 100
+
+    asyncio.run(obj.handle_incoming(ChatActionEvent()))
+
+    assert called == []
+
+
 def test_answer_returns_media_edit_result(monkeypatch, tmp_path):
     utils = import_ft("utils", monkeypatch, tmp_path)
 
@@ -218,6 +246,115 @@ def test_default_inline_ttl_uses_markup_ttl(monkeypatch, tmp_path):
 
     ttl = asyncio.run(run())
     assert ttl - time.time() > 3600
+
+
+def test_utils_dnd_mutes_and_archives_peer(monkeypatch, tmp_path):
+    utils = import_ft("utils", monkeypatch, tmp_path)
+    from telethon.tl.functions.account import UpdateNotifySettingsRequest
+
+    sent = []
+    folder_calls = []
+
+    class FakeClient:
+        async def get_input_entity(self, peer):
+            return f"<entity:{peer}>"
+
+        async def __call__(self, request):
+            sent.append(request)
+
+        async def edit_folder(self, entity, folder):
+            folder_calls.append((entity, folder))
+
+    result = asyncio.run(utils.dnd(FakeClient(), "@target", archive=True))
+
+    assert result is True
+    assert len(sent) == 1
+    assert isinstance(sent[0], UpdateNotifySettingsRequest)
+    assert sent[0].settings.silent is True
+    assert folder_calls == [("<entity:@target>", 1)]
+
+    folder_calls.clear()
+    sent.clear()
+    result = asyncio.run(utils.dnd(FakeClient(), "@target", archive=False))
+    assert result is True
+    assert len(sent) == 1
+    assert folder_calls == []
+
+
+def test_inline_edit_retries_with_escaped_html_on_parse_error(monkeypatch, tmp_path):
+    inline = import_ft("inline", monkeypatch, tmp_path)
+    from aiogram.exceptions import TelegramBadRequest
+
+    calls = []
+
+    class FakeBot:
+        async def edit_message_text(self, **kwargs):
+            calls.append(dict(kwargs))
+            if len(calls) == 1:
+                raise TelegramBadRequest(
+                    method=SimpleNamespace(),
+                    message='Bad Request: can\'t parse entities: Unsupported start tag "bot" at byte offset 177',
+                )
+            return None
+
+    class FakeSelf:
+        bot = FakeBot()
+
+        def _generate_markup(self, form_uid):
+            return None
+
+    bad_text = "Error: <bot username>"
+
+    asyncio.run(
+        inline.edit(
+            bad_text,
+            self=FakeSelf(),
+            inline_message_id="msg-id",
+        )
+    )
+
+    assert len(calls) == 2
+    assert calls[0]["text"] == bad_text
+    assert calls[1]["text"] == "Error: &lt;bot username&gt;"
+
+
+def test_chosen_inline_handler_provides_answer_shim(monkeypatch, tmp_path):
+    inline = import_ft("inline", monkeypatch, tmp_path)
+
+    class DB:
+        def get(self, *args):
+            return False
+
+    client = SimpleNamespace(
+        dispatcher=SimpleNamespace(security=SimpleNamespace(_owner=[]))
+    )
+    manager = inline.InlineManager(client, DB(), SimpleNamespace())
+    manager._me = 42
+
+    captured = []
+
+    async def handler(call, query):
+        await call.answer("ack", show_alert=True)
+        captured.append(query)
+
+    manager._forms["form-1"] = {
+        "buttons": [[{
+            "_switch_query": "sq",
+            "input": "type here",
+            "handler": handler,
+        }]],
+        "always_allow": [],
+    }
+
+    chosen = SimpleNamespace(
+        query="sq payload",
+        from_user=SimpleNamespace(id=42),
+        inline_message_id="msg-id",
+    )
+
+    asyncio.run(manager._chosen_inline_handler(chosen))
+
+    assert captured == ["payload"]
 
 
 def test_gen_port_uses_valid_upper_bound(monkeypatch, tmp_path):

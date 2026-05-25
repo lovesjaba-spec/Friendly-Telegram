@@ -132,6 +132,10 @@ class InlineCall:
         return getattr(query, name)
 
 
+async def _noop_chosen_answer(*args, **kwargs):
+    return None
+
+
 class BotMessage(AiogramMessage):
     def __init__(self):
         super().__init__()
@@ -277,6 +281,12 @@ async def edit(
                     )
                 except TelegramBadRequest:
                     pass
+        elif "can't parse entities" in msg or "unsupported start tag" in msg:
+            edit_kwargs["text"] = utils.escape_html(text)
+            try:
+                await self.bot.edit_message_text(**edit_kwargs)
+            except TelegramBadRequest:
+                logger.exception("Failed to edit inline message")
         else:
             logger.exception("Failed to edit inline message")
 
@@ -1343,6 +1353,7 @@ class InlineManager:
                         form=form,
                         form_uid=form_uid,
                     )
+                    call.answer = _noop_chosen_answer
 
                     try:
                         return await button["handler"](
