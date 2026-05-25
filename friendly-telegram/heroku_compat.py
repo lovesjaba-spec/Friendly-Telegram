@@ -361,6 +361,9 @@ def inject(mod, client, db, tg_id, allmodules):
     mod.hikka = True
     mod.heroku = True
     mod.allmodules = allmodules
+    mod._raw_inline_cache = getattr(mod, "inline", None) or getattr(
+        allmodules, "inline", None
+    )
 
     if not hasattr(type(mod), "lookup"):
         mod.lookup = lambda name: lookup(allmodules, name)

@@ -248,6 +248,30 @@ def test_default_inline_ttl_uses_markup_ttl(monkeypatch, tmp_path):
     assert ttl - time.time() > 3600
 
 
+def test_heroku_compat_inject_sets_raw_inline_cache(monkeypatch, tmp_path):
+    heroku_compat = import_ft("heroku_compat", monkeypatch, tmp_path)
+
+    class StubMod:
+        inline = "real-mgr"
+
+    mod = StubMod()
+    heroku_compat.inject(mod, client=None, db=None, tg_id=0, allmodules=SimpleNamespace())
+    assert mod._raw_inline_cache == "real-mgr"
+
+    class BareMod:
+        pass
+
+    bare = BareMod()
+    heroku_compat.inject(
+        bare,
+        client=None,
+        db=None,
+        tg_id=0,
+        allmodules=SimpleNamespace(inline="fallback-mgr"),
+    )
+    assert bare._raw_inline_cache == "fallback-mgr"
+
+
 def test_utils_dnd_mutes_and_archives_peer(monkeypatch, tmp_path):
     utils = import_ft("utils", monkeypatch, tmp_path)
     from telethon.tl.functions.account import UpdateNotifySettingsRequest
